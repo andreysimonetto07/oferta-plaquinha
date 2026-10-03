@@ -1,6 +1,6 @@
 # TapStar
 
-Loja pt-BR de Google azul, Google preta, Instagram e Google em L. Visual compacto, logos fornecidas no repositório, pedido mínimo de 25 placas e pagamento somente Pix. Publicação GitHub → Vercel, projeto `tap-star`: <https://tap-star-two.vercel.app/>.
+Loja pt-BR de Google azul, Google preta, Instagram e Google em L. Visual compacto, logos fornecidas no repositório, pedido mínimo de 5 placas e pagamento somente Pix. Publicação GitHub → Vercel, projeto `tap-star`: <https://tap-star-two.vercel.app/>.
 
 ## Preços e entrega
 
@@ -8,11 +8,12 @@ A soma dos quatro modelos determina a faixa. Cada modelo conserva o seu preço:
 
 | Quantidade total | Comuns | Google em L |
 | --- | --- | --- |
-| 25–149 | R$ 9,99 | R$ 12,99 |
-| 150–299 | R$ 9,49 | R$ 12,49 |
-| 300–2.000 | R$ 8,99 | R$ 11,99 |
+| 5–99 | R$ 9,99 | R$ 12,99 |
+| 100 ou mais | R$ 7,49 | R$ 12,99 |
 
-Frete grátis: 6 dias. Frete Full: R$ 16,90, 2 dias úteis. Prazos estimados após confirmação do Pix. Escolha de frete aparece no carrinho e checkout e é recalculada no servidor. Simulador inicia com 5 de cada modelo (20), mostra quantas faltam para 25 e impede finalizar abaixo do mínimo. Carrinho pode ser montado aos poucos; API exige mínimo de 25.
+Frete grátis: 6 dias. Frete Full: R$ 16,90, 2 dias úteis. Prazos estimados após confirmação do Pix. Escolha de frete aparece no carrinho e checkout e é recalculada no servidor. Seletores do catálogo e simulador iniciam em zero, sem selecionar modelos pelo cliente. Carrinho pode ser montado aos poucos; API exige mínimo de 5 no pedido inteiro. O desconto das placas comuns começa exatamente em 100 unidades somadas; Google em L mantém R$ 12,99.
+
+O limite é **R$ 900,00 por pagamento, incluindo frete**, em centavos (`MAX_TOTAL_CENTS=90000`). Carrinho e simulador mostram totais acima do limite para permitir ajustes, mas bloqueiam a finalização. Checkout revalida ao trocar frete; API recalcula e rejeita acima do teto tanto no `prepare` quanto no `create`, antes de chamar Mangofy. Não dividimos automaticamente uma compra em vários Pix. Sem contas e sem armazenamento próprio, esse teto é por transação; não controla um limite acumulado por CPF/conta. O limite técnico de 2.000 unidades continua servindo apenas para validar entradas.
 
 `public/js/catalog.js` é a fonte compartilhada de preços e entrega. Valores enviados pelo navegador não são confiados. O modelo em L usa ilustração gerada, indicada no catálogo; confirmar acabamento com fornecedor. A configuração física dos destinos NFC/QR e um eventual serviço de QR dinâmico são operações separadas. Nenhuma plataforma de gestão de placas está implementada.
 
@@ -20,7 +21,7 @@ Frete grátis: 6 dias. Frete Full: R$ 16,90, 2 dias úteis. Prazos estimados ap�
 
 Não há Redis, banco de pedidos, administração ou histórico local de pedidos. A Mangofy recebe os itens, cliente e endereço; o site consulta o pagamento diretamente por `payment_code`. Confirmar na conta Mangofy a disponibilidade desses dados para expedição antes de aceitar vendas. Não há automação de despacho.
 
-1. `POST /api/checkout`, `action: prepare`: valida mínimo, modelos, frete, cliente e origem. Retorna ticket assinado, com referência e hash dos dados. Não gera cobrança.
+1. `POST /api/checkout`, `action: prepare`: valida mínimo, teto de R$ 900, modelos, frete, cliente e origem. Retorna ticket assinado, com referência e hash dos dados. Não gera cobrança.
 2. `action: create` + ticket: confere o hash, recalcula os valores e faz um único POST Pix nessa execução.
 3. A resposta contém recibo assinado com código Mangofy, referência e valores. O navegador guarda recibo e QR; não grava nome, documento, telefone ou endereço nesse armazenamento.
 4. `GET /api/status/{pedido_id}` com Bearer recibo: valida assinatura, consulta a Mangofy e confere referência, método, código, total e frete antes de informar aprovação.
@@ -61,7 +62,7 @@ Fontes oficiais verificadas em 03/10/2026: <https://app.mangofy.com.br/checkout/
 
 Payload: `external_code`, `payment_method: pix`, `payment_format`, `installments: 1`, `payment_amount` em centavos (total com frete), `shipping_amount` como parcela informativa, `items`, cliente/endereço, `shipping`, `postback_url`, `pix.expires_in_days`, metadata de frete. **Confirmar a semântica do frete no sandbox**: se o provedor somar frete adicionalmente, ajustar o payload e a conciliação antes de liberar vendas. O servidor bloqueia divergência nos valores retornados.
 
-Não houve pagamento real ou sandbox, pois faltam credenciais. Testes simulam a Mangofy; cobrem preços, mínimo, fretes, alteração de ticket, Pix somente, sessão sem banco, callback falso, divergência e timeout. Antes de `SHOP_READY=true`, gerar Pix de teste, conferir valores, itens/endereço disponíveis para entrega e status aprovado. Completar políticas e contato comercial. A tela normal não promete pagamento confirmado antes de consulta ao provedor.
+Não houve pagamento real ou sandbox, pois faltam credenciais. Testes simulam a Mangofy; cobrem preços (99/100), mínimo (4/5), teto de R$ 900 com frete e valores forjados, fretes, alteração de ticket, Pix somente, sessão sem banco, callback falso, divergência e timeout. Antes de `SHOP_READY=true`, gerar Pix de teste, conferir valores, itens/endereço disponíveis para entrega e status aprovado. Completar políticas e contato comercial. A tela normal não promete pagamento confirmado antes de consulta ao provedor.
 
 ## Assets
 
