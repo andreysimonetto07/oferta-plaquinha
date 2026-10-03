@@ -1,14 +1,25 @@
-# Oferta Plaquinha
+# TapStar
 
-Loja pt-BR de quatro modelos decorativos. Estrutura visual inspirada no TapSmart: destaque verde, fundo claro, hero de produtos, catálogo, etapas, atacado, simulador de revenda e FAQ. Identidade própria. Não utiliza marca, código, métricas, depoimentos ou fotos da referência. Não inclui plataforma NFC/QR: os produtos seguem a especificação decorativa do pedido.
+Loja de placas Google azul, Google preta e Instagram com NFC + QR Code. Identidade TapStar usando as duas logos fornecidas no repositório. Visual baseado nos prints enviados: hero com placas sobrepostas, fundo claro quadriculado, destaque verde, tabela de atacado e simulador escuro. Somente Pix.
 
-## Estado da entrega
+## Catálogo e desconto
 
-Carrinho e simulador funcionais; backend Mangofy implementado. Testes usam provedor simulado. **Não houve pagamento real nem teste no sandbox Mangofy**, pois não foram fornecidas credenciais/acesso. A loja inicia em demonstração sem cobranças. Preços, frete de R$ 19,90 e imagens SVG são demonstrativos e exigem confirmação comercial.
+`public/js/catalog.js` é compartilhado pelo navegador e servidor. A soma de **todos os modelos** determina um único preço por placa:
 
-## Desenvolvimento e publicação
+| Total de placas | Preço por placa |
+| --- | --- |
+| 1 | R$ 25 |
+| 2–49 | R$ 20 |
+| 50–299 | R$ 17 |
+| 300–2.000 | R$ 15 |
 
-Node.js 24, sem dependências de terceiros.
+20 Google azuis + 30 Google pretas = 50 placas, R$ 17 por unidade, R$ 850 em produtos. O frete de referência é R$ 19,90 por pedido (total R$ 869,90). Preços seguem o print; frete, especificações, disponibilidade e prazos precisam ser confirmados pelo responsável antes de aceitar pagamentos. Carrinho antigo de peças decorativas não é reaproveitado.
+
+As peças físicas exigem configuração do destino NFC/QR para cada negócio. Este site não inclui plataforma de links dinâmicos, painel de ativação, fabricação, envio ou integração com o Google Business Profile. Não promete uma plataforma ainda inexistente.
+
+## Desenvolvimento e deploy
+
+Node.js 24, sem dependências de aplicação de terceiros:
 
 ```sh
 npm run dev
@@ -16,62 +27,51 @@ npm test
 npm run build
 ```
 
-Build copia `public/` para `dist/`; Vercel publica funções `api/` separadamente. Para carregar configuração local: `node --env-file=.env scripts/dev.mjs`.
+Para configuração local: `node --env-file=.env scripts/dev.mjs`. Build copia `public/` para `dist/`; Vercel serve `api/` separadamente. Projeto Vercel `tap-star`, conectado a `andreysimonetto07/oferta-plaquinha`, branch main. Produção: <https://tap-star-two.vercel.app/>. Framework Other, build `npm run build`, output `dist`, Node 24; configuração em `vercel.json`.
 
-Importar `andreysimonetto07/oferta-plaquinha` na Vercel. Framework Other; build `npm run build`; output `dist`; Node 24. Esses valores estão em `vercel.json`, junto dos headers de segurança. A integração Git pode publicar automaticamente após push em main.
+## Configuração de Pix
 
-Configurar variáveis de `.env.example` no painel Vercel. Nunca colocar chaves reais no repositório, frontend ou conversa.
+Não houve pagamento real nem teste em sandbox Mangofy: faltam credenciais e configuração do banco. Testes usam provedor e Redis simulados. O checkout fica bloqueado enquanto a configuração não estiver pronta. Nunca colocar chaves no frontend, repositório ou conversa.
 
 | Variável | Uso |
 | --- | --- |
-| `MANGOFY_API_KEY` | Header Authorization exatamente como fornecido pelo gestor |
-| `MANGOFY_STORE_CODE` | Header Store-Code da integração |
-| `MANGOFY_BASE_URL` | Padrão oficial `https://checkout.mangofy.com.br`; base de sandbox deve ser confirmada pelo gestor |
-| `MANGOFY_API_STYLE` | `method`: `/api/v1/payment/pix` ou `/api/v1/payment/credit-card`; `unified`: `/api/v1/payment` |
-| `APP_URL` | URL HTTPS definitiva, usada para validar origem e postback |
+| `MANGOFY_API_KEY` | Header Authorization como fornecido pela Mangofy |
+| `MANGOFY_STORE_CODE` | Header Store-Code |
+| `MANGOFY_BASE_URL` | Base oficial ou sandbox confirmado pelo gestor |
+| `MANGOFY_API_STYLE` | `method` para `/api/v1/payment/pix`; `unified` para `/api/v1/payment` |
+| `APP_URL` | URL HTTPS da loja para validar origem e postback |
 | `ORDER_SECRET` | Segredo aleatório de pelo menos 32 caracteres |
-| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Redis REST privado e persistente, com acesso de leitura/escrita |
-| `SELLER_DETAILS` | Identificação do vendedor e contato, exibidos no rodapé |
-| `ENABLE_CARD_PAYMENTS` | `true` somente após habilitação e avaliação de segurança do fluxo |
-| `SHOP_READY` | `true` após confirmar preços, frete, prazos, políticas, identidade e pagamento |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Banco Redis REST privado e persistente |
+| `SELLER_DETAILS` | Identificação e contato do vendedor, exibidos no rodapé |
+| `SHOP_READY` | `true` somente após completar configuração comercial e validar Pix |
 
-Gerar segredo: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Não usar credenciais de produção em testes. Banco Redis não foi provisionado automaticamente.
+Gerar segredo: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Banco e credenciais não foram provisionados. Somente `payment_method: 'pix'` é aceito. Outros métodos são rejeitados no servidor; não há campos, processamento ou armazenamento de dados de cartão.
 
-## Contrato Mangofy verificado em 03/10/2026
+## Contrato Mangofy
 
-Fontes oficiais: <https://app.mangofy.com.br/checkout/doc> e <https://app.mangofy.com.br/checkout-doc.json>.
+Fontes oficiais verificadas na implementação inicial em 03/10/2026: <https://app.mangofy.com.br/checkout/doc> e <https://app.mangofy.com.br/checkout-doc.json>.
 
-**As fontes divergem:** o OpenAPI incorporado na página descreve endpoints separados e base `https://checkout.mangofy.com.br`; a coleção Postman descreve endpoint unificado e uma base `.test` ilustrativa. O código oferece as duas opções. Não faz fallback automático de POST, pois isso pode duplicar cobrança. Confirmar endpoint/sandbox com o gestor.
+O OpenAPI incorporado descreve endpoints separados e base `https://checkout.mangofy.com.br`; a coleção Postman descreve endpoint unificado e base `.test` ilustrativa. O código permite escolher a versão confirmada pelo gestor. Não faz fallback de POST, para evitar cobranças duplicadas. Confirmar sandbox e contrato antes de habilitar vendas.
 
-Payload: `external_code`, `payment_method`, `payment_format`, `installments`, `payment_amount` em centavos (total com frete), `shipping_amount` (parcela informativa), `items` com `code/name/quantity/price/digital_flag:false`, `customer` com `document/phone/ip` e endereço, `shipping`, `postback_url` e `pix.expires_in_days`. Cartão usa `card.number/holder_name/expiration_month/expiration_year/cvv/soft_descriptor`, seguindo o esquema atual. **Confirmar no sandbox a semântica de shipping_amount**, pois o exemplo público não demonstra frete não-zero; o servidor compara o valor retornado e bloqueia divergências. Se o provedor tratar frete como adicional, ajustar payment_amount e a conciliação antes de abrir vendas.
+Payload: `external_code`, `payment_method: pix`, `payment_format`, `installments: 1`, `payment_amount` em centavos (total com frete), `shipping_amount` (parcela informativa), `items` com código, nome, quantidade, preço e `digital_flag: false`, `customer` com documento, telefone, IP e endereço, `shipping`, `postback_url` e `pix.expires_in_days`.
 
-Respostas: `payment_code`, `payment_status`, `pix.pix_qrcode_text`, `pix.pix_qrcode_image`, `pix.pix_expires_at`. Não utiliza a URL fictícia `api.mangofy.com.br/checkout` do prompt original.
+**Validar a semântica do frete no sandbox:** o exemplo público não demonstra frete não zero. O servidor confere total e frete retornados e bloqueia divergências. Se o provedor somar frete adicionalmente, ajustar o payload e a conciliação antes de abrir vendas.
+
+Resposta: `payment_code`, `payment_status`, `pix.pix_qrcode_text`, `pix.pix_qrcode_image`, `pix.pix_expires_at`. Não usa o endpoint fictício do prompt inicial.
 
 ## Rotas e segurança
 
-- `GET /api/config`: disponibilidade pública do checkout, sem segredos.
-- `POST /api/checkout`: valida cliente, CPF/CNPJ e endereço; recalcula preços/frete no servidor; registra pedido e cria cobrança. Exige mesma origem e `Idempotency-Key` UUID. Valores enviados pelo cliente são ignorados.
-- `GET /api/status/{pedido_id}`: exige Bearer token exclusivo do pedido; consulta o provedor e compara código externo, método, total e frete. Não expõe endereço/documento.
-- `POST /api/webhook?order=...&token=...`: callback com HMAC próprio por pedido. A documentação não define assinatura Mangofy. A aprovação recebida não é aceita diretamente: o backend faz GET autenticado no provedor e valida a transação. Repetições reconciliam o estado sem iniciar entrega ou novo pagamento.
+- `GET /api/config`: disponibilidade, `payment_method: pix` e dados públicos do vendedor.
+- `POST /api/checkout`: valida CPF/CNPJ, dados e endereço; recalcula preço agregado e frete; exige mesma origem e UUID de idempotência; persiste pedido antes de gerar Pix.
+- `GET /api/status/{pedido_id}`: exige token exclusivo; consulta o provedor; valida pedido, código, método, total e frete; não expõe documento ou endereço.
+- `POST /api/webhook?order=...&token=...`: token HMAC por pedido. A aprovação do corpo nunca é confiada diretamente: consulta autenticada ao provedor e conciliação antes de atualizar status.
 
-Banco: chaves `order:OP-...`, `checkout:<uuid>`, `rate:...`. Pedidos persistem sem expiração automática para não perder dados de entrega; definir política de retenção e exclusão. Idempotência expira em 24h. Timeout após POST retorna `verification_required`; não criar outra cobrança. Se houver payment_code, consultar status. Se não houver, conciliar pelo webhook ou localizar pelo código externo no painel Mangofy. Não há painel administrativo nesta versão.
+Chaves Redis `order:OP-...`, `checkout:<uuid>` e `rate:...`. Pedidos persistem para entrega; definir política de retenção. Idempotência dura 24h. Timeout de criação gera `verification_required`: não iniciar outra cobrança; consultar pelo código ou conciliar o pedido no provedor. Nenhuma entrega automática ou painel administrativo está implementado.
 
-Cartão/CVV permanecem somente na memória da requisição; não são persistidos ou registrados. Cartão inicia desabilitado. O responsável deve atender às exigências PCI DSS antes de ativar o fluxo. A documentação consultada não fornece SDK de tokenização inicial ou hosted fields; nenhum SDK foi inventado. O token descrito é para cartões já salvos no provedor.
+## Verificação antes de liberar pagamentos
 
-## Catálogo e conteúdo comercial
+Confirmar os dados comerciais e completar `public/politicas.html`. Com sandbox e Redis de teste, conferir valor, itens, endereço, QR, validade, aprovação, callbacks repetidos, token inválido, timeout e idempotência. Ativar `SHOP_READY` apenas após essas verificações. A página de acompanhamento só confirma `approved` consultado no servidor.
 
-Editar `public/js/catalog.js`: fonte compartilhada pelo frontend/backend. Mínimo 5 por variante; descontos pela soma das cores do mesmo modelo; faixas 5–9, 10–49 e 50+; personalização até 60 caracteres. Limites: 1.000 por item e 2.000 por pedido. Textos inseridos pelo cliente são escapados ao exibir.
+## Assets
 
-Substituir SVGs por fotos reais; completar `public/politicas.html`; revisar FAQ, tabela, preços e frete; publicar identificação e contato, prazo de produção/entrega, aprovação da personalização, trocas e retenção de dados. O readiness exige configuração comercial e credenciais, mas não valida automaticamente o conteúdo editorial das políticas.
-
-## Antes de receber pagamentos
-
-1. Configurar sandbox confirmado pela Mangofy e Redis de teste.
-2. Confirmar endpoint, campos e tratamento do frete com o gestor.
-3. Gerar Pix; conferir valor, itens, endereço, QR Code, validade e aprovação.
-4. Verificar webhook repetido, token inválido e consulta de status autorizada.
-5. Testar cartão aprovado/recusado, timeout e idempotência.
-6. Conferir ausência de dados de cartão em banco/logs.
-7. Confirmar condições comerciais; então ativar `SHOP_READY` no ambiente definitivo.
-
-A página de acompanhamento só informa pagamento confirmado com status `approved` consultado no servidor. Parâmetros da URL nunca confirmam pagamentos.
+`IMG_2723.PNG` e `IMG_2724.PNG` originais foram preservadas. Cópias usadas em `public/assets/tapstar-cover.png` e `tapstar-logo.png`. Fotos de modelos provenientes dos assets públicos da referência solicitada <https://www.tapsmart.com.br/>: `/landing/placa-azul.webp`, `/landing/placa-preta-mockup.webp` e `/landing/placa-instagram.webp`. Fontes Geist e Geist Mono com licença SIL OFL em `public/assets/FONT-LICENSE.txt`. Nenhuma métrica de vendas ou depoimento fictício foi incluído.

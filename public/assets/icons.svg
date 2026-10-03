@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="truck" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16V5h12v11H2m12-8h4l4 5v3h-8"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></g></symbol>
+<symbol id="box" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5zM3 7l9 5 9-5M12 12v10M7.5 4.5l9 5"/></g></symbol>
+<symbol id="pix" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 10-10 10L2 12 12 2zM5 9h3l4 4 4-4h3M5 15h3l4-4 4 4h3"/></g></symbol>
+<symbol id="nfc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 9c2 1 2 5 0 6M9 6c4 3 4 9 0 12M13 3c6 5 6 13 0 18"/><circle cx="2" cy="12" r="1"/></g></symbol>
+<symbol id="ruler" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 13-13 5 5L8 21l-5-5zM13 6l3 3M9 10l3 3M5 14l3 3"/></g></symbol>
+<symbol id="layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="m12 2 10 6-10 6L2 8l10-6zM2 12l10 6 10-6M2 16l10 6 10-6"/></g></symbol>
+<symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>

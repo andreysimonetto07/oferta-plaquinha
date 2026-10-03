@@ -1,29 +1,32 @@
-// Shared with the server: all monetary values are integer centavos.
-export const MIN_QUANTITY = 5;
+// Shared by browser and server. BRL amounts are integer centavos.
+export const MIN_QUANTITY = 1;
 export const SHIPPING_CENTS = 1990;
+export const PRICE_TIERS = [
+ {min:1,max:1,cents:2500,label:'1 placa'},
+ {min:2,max:49,cents:2000,label:'2 a 49 placas'},
+ {min:50,max:299,cents:1700,label:'50 a 299 placas'},
+ {min:300,max:2000,cents:1500,label:'300 placas ou mais'}
+];
 export const PRODUCTS = [
- {id:'acrilico',name:'Acrílico Premium',description:'Acabamento elegante para dar personalidade a qualquer espaço.',spec:'10 × 10 cm · Acrílico 2 mm',variants:['Azul','Preto','Branco'],image:'/assets/acrilico.svg',prices:[2500,2200,1900],tag:'MAIS VERSÁTIL'},
- {id:'mdf',name:'MDF Natural',description:'Textura natural e um toque acolhedor para a decoração.',spec:'12 × 12 cm · MDF 3 mm',variants:['Natural'],image:'/assets/mdf.svg',prices:[1900,1600,1300],tag:'TOQUE RÚSTICO'},
- {id:'espelhada',name:'Acrílico Espelhado',description:'Brilho e sofisticação em três acabamentos especiais.',spec:'8 × 8 cm · Acrílico espelhado',variants:['Dourado','Rosê','Prata'],image:'/assets/espelhada.svg',prices:[2900,2600,2300],tag:'ACABAMENTO ESPECIAL'},
- {id:'personalizada',name:'Sua Plaquinha',description:'Seu nome ou sua frase. Uma peça feita para ser única.',spec:'10 × 10 cm · Sob encomenda',variants:['Branco','Preto'],image:'/assets/personalizada.svg',prices:[3500,3200,2900],tag:'DO SEU JEITO'}
+ {id:'google-azul',name:'Placa Google Azul',shortName:'Placa Azul',description:'Uma forma simples de convidar seus clientes a avaliar seu negócio no Google.',spec:'10 × 10 cm · Acrílico 2 mm',variants:['Azul'],image:'/assets/google-azul.webp',tag:'AVALIAÇÕES NO GOOGLE'},
+ {id:'google-preta',name:'Placa Google Preta',shortName:'Placa Preta',description:'Avaliações no Google com um acabamento versátil para qualquer balcão.',spec:'10 × 10 cm · Acrílico 2 mm',variants:['Preta'],image:'/assets/google-preta.webp',tag:'AVALIAÇÕES NO GOOGLE'},
+ {id:'instagram',name:'Placa Instagram',shortName:'Placa Instagram',description:'Aproxime o celular ou escaneie o QR Code para conhecer o perfil do negócio.',spec:'10 × 10 cm · Acrílico 2 mm',variants:['Instagram'],image:'/assets/instagram.webp',tag:'CONECTE SEU INSTAGRAM'}
 ];
 export const money = value => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(value/100);
-export const unitPrice = (product, quantity) => product.prices[quantity>=50?2:quantity>=10?1:0];
+export const tierFor = quantity => PRICE_TIERS.find(t=>quantity>=t.min&&quantity<=t.max)||PRICE_TIERS[0];
+export const unitPrice = (_product,quantity) => tierFor(quantity).cents;
 export function quote(items) {
- if(!Array.isArray(items)||!items.length||items.length>40) throw new Error('Selecione suas plaquinhas.');
+ if(!Array.isArray(items)||!items.length||items.length>20)throw new Error('Escolha pelo menos uma placa.');
  const merged=new Map();
  for(const item of items){
   const p=PRODUCTS.find(p=>p.id===item.id);
-  if(!p||!p.variants.includes(item.variant)||!Number.isSafeInteger(item.quantity)||item.quantity<5||item.quantity>1000) throw new Error('Cada modelo deve ter de 5 a 1.000 unidades e uma variante válida.');
-  const text=p.id==='personalizada'?String(item.text||'').trim():'';
-  if(p.id==='personalizada'&&(!text||text.length>60)) throw new Error('Informe uma frase de até 60 caracteres.');
-  const key=JSON.stringify([p.id,item.variant,text]);const old=merged.get(key);
-  merged.set(key,{id:p.id,name:p.name,variant:item.variant,text,quantity:item.quantity+(old?.quantity||0)});
+  if(!p||!p.variants.includes(item.variant)||!Number.isSafeInteger(item.quantity)||item.quantity<1||item.quantity>2000)throw new Error('Escolha um modelo válido e uma quantidade de 1 a 2.000 placas.');
+  const existing=merged.get(p.id);merged.set(p.id,{id:p.id,name:p.name,variant:p.variants[0],text:'',quantity:item.quantity+(existing?.quantity||0)});
  }
- const lines=[...merged.values()];if(lines.some(l=>l.quantity>1000))throw new Error('Limite de 1.000 unidades por variante.');
- const quantities={};for(const l of lines) quantities[l.id]=(quantities[l.id]||0)+l.quantity;
- if(lines.reduce((s,l)=>s+l.quantity,0)>2000) throw new Error('Para pedidos acima de 2.000 unidades, consulte atendimento.');
- for(const l of lines){const p=PRODUCTS.find(p=>p.id===l.id);l.unit_cents=unitPrice(p,quantities[l.id]);l.total_cents=l.unit_cents*l.quantity;}
- const subtotal_cents=lines.reduce((s,l)=>s+l.total_cents,0);
- return {items:lines,quantity:lines.reduce((s,l)=>s+l.quantity,0),subtotal_cents,shipping_cents:SHIPPING_CENTS,total_cents:subtotal_cents+SHIPPING_CENTS};
+ const lines=[...merged.values()],quantity=lines.reduce((s,l)=>s+l.quantity,0);
+ if(quantity>2000)throw new Error('Para pedidos acima de 2.000 placas, consulte atendimento.');
+ const unit_cents=tierFor(quantity).cents;
+ for(const l of lines){l.unit_cents=unit_cents;l.total_cents=unit_cents*l.quantity;}
+ const subtotal_cents=unit_cents*quantity;
+ return {items:lines,quantity,unit_cents,subtotal_cents,shipping_cents:SHIPPING_CENTS,total_cents:subtotal_cents+SHIPPING_CENTS};
 }
