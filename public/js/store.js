@@ -10,7 +10,7 @@ if(grid){
   button.addEventListener('click',()=>{
    if(!input.reportValidity()||Number(input.value)<=0)return;
    const items=getCart(),old=items.find(i=>i.id===p.id);if(old)old.quantity+=Number(input.value);else items.push({id:p.id,variant:p.variants[0],quantity:Number(input.value)});
-   try{saveCart(items);const q=quote(items,'standard',draftOptions);toast(!q.within_limit?`Adicionado. O total ultrapassa ${money(MAX_TOTAL_CENTS)}; ajuste no carrinho.`:`${p.shortName} adicionada.${q.quantity<MIN_QUANTITY?` Faltam ${MIN_QUANTITY-q.quantity} para o mínimo de ${MIN_QUANTITY}.`:''}`);}catch(e){toast(e.message);}
+   try{saveCart(items);const q=quote(items,'standard',draftOptions);toast(!q.within_limit?`Adicionado. O total ultrapassa ${money(MAX_TOTAL_CENTS)}; ajuste no carrinho.`:`${p.shortName} adicionada.${q.quantity<MIN_QUANTITY?` Adicione mais ${MIN_QUANTITY-q.quantity} ${MIN_QUANTITY-q.quantity===1?'placa':'placas'} para o mínimo de ${MIN_QUANTITY}.`:''}`);}catch(e){toast(e.message);}
   });
  });
 }
@@ -28,7 +28,7 @@ if(simulator){
   document.querySelector('#sim-l-unit').textContent=within?money(tier.l_cents):'—';
   document.querySelector('#sim-total').textContent=within?money(q?.subtotal_cents||0):'—';
   const next=PRICE_TIERS.find(t=>t.min>n&&t.min>MIN_QUANTITY);
-  document.querySelector('#sim-next').textContent=!within?'Confira as quantidades: use números inteiros.':overLimit?`Total acima de ${money(MAX_TOTAL_CENTS)}. Ajuste as quantidades para continuar.`:n===0?`Escolha seus modelos. Mínimo de ${MIN_QUANTITY} placas no pedido.`:n<MIN_QUANTITY?`Faltam ${MIN_QUANTITY-n} placas para o pedido mínimo de ${MIN_QUANTITY}.`:next?`A partir de ${next.min} placas, as comuns saem por ${money(next.cents)} cada.`:'Preço de atacado aplicado às placas comuns.';
+  document.querySelector('#sim-next').textContent=!within?'Confira as quantidades: use números inteiros.':overLimit?`Total acima de ${money(MAX_TOTAL_CENTS)}. Ajuste as quantidades para continuar.`:n===0?`Escolha seus modelos. Mínimo de ${MIN_QUANTITY} placas no pedido.`:n<MIN_QUANTITY?`Adicione mais ${MIN_QUANTITY-n} ${MIN_QUANTITY-n===1?'placa':'placas'} para o pedido mínimo de ${MIN_QUANTITY}.`:next?`A partir de ${next.min} placas, as comuns saem por ${money(next.cents)} cada.`:'Preço de atacado aplicado às placas comuns.';
   document.querySelectorAll('[data-price-tier]').forEach(el=>el.classList.toggle('active',within&&n>0&&Number(el.dataset.priceTier)===tier.min));
   const button=document.querySelector('#buy-order');button.disabled=!within||n<MIN_QUANTITY||overLimit;button.textContent=overLimit?'Ajustar quantidades':n===0?'Selecione suas placas':n<MIN_QUANTITY?`Mínimo de ${MIN_QUANTITY} placas`:'Comprar meu lote →';
  }

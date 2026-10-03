@@ -6,7 +6,7 @@ const list=document.querySelector('#cart-items');
 function totals(q){
  document.querySelector('#cart-summary').innerHTML=q?summary(q):'<p>Seu carrinho está vazio.</p>';
  document.querySelector('#checkout-link').hidden=!q||q.quantity<MIN_QUANTITY||!q.within_limit;
- document.querySelector('#minimum-message').textContent=q&&!q.within_limit?`O total supera ${money(MAX_TOTAL_CENTS)}, incluindo o frete. Ajuste seu pedido para continuar.`:q&&q.quantity<MIN_QUANTITY?`Faltam ${MIN_QUANTITY-q.quantity} placas para o mínimo de ${MIN_QUANTITY}.`:`Misture os quatro modelos. Mínimo de ${MIN_QUANTITY} placas no pedido.`;
+ document.querySelector('#minimum-message').textContent=q&&!q.within_limit?`O total supera ${money(MAX_TOTAL_CENTS)}, incluindo o frete. Ajuste seu pedido para continuar.`:q&&q.quantity<MIN_QUANTITY?`Adicione mais ${MIN_QUANTITY-q.quantity} ${MIN_QUANTITY-q.quantity===1?'placa':'placas'} para o mínimo de ${MIN_QUANTITY}.`:`Misture os quatro modelos. Mínimo de ${MIN_QUANTITY} placas no pedido.`;
  if(q)for(const line of q.items){const row=list.querySelector(`[data-line="${line.id}"]`);if(row){row.querySelector('[data-unit]').textContent=`${money(line.unit_cents)} por placa`;row.querySelector('[data-line-total]').textContent=money(line.total_cents);}}
 }
 function render(){
