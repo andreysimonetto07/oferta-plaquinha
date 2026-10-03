@@ -47,8 +47,7 @@ Node.js 24, sem dependências de aplicação. `npm run dev`, `npm test`, `npm ru
 | --- | --- |
 | `MANGOFY_API_KEY` | Header Authorization fornecido pela Mangofy |
 | `MANGOFY_STORE_CODE` | Store-Code da integração |
-| `MANGOFY_BASE_URL` | Base oficial/sandbox confirmado pelo gestor |
-| `MANGOFY_API_STYLE` | `method`: `/api/v1/payment/pix`; `unified`: `/api/v1/payment` |
+| `MANGOFY_BASE_URL` | `https://checkout.mangofy.com.br`, confirmado nos exemplos da documentação oficial; URL de sandbox somente se fornecida pelo gestor |
 | `APP_URL` | URL HTTPS da loja para origem e callback |
 | `ORDER_SECRET` | Segredo aleatório com pelo menos 32 caracteres |
 | `SELLER_DETAILS` | Identificação e contato do vendedor |
@@ -58,11 +57,13 @@ Não há variáveis de banco. Não commitir chaves reais. Gerar segredo com `nod
 
 ## Contrato e teste Mangofy
 
-Fontes oficiais verificadas em 03/10/2026: <https://app.mangofy.com.br/checkout/doc> e <https://app.mangofy.com.br/checkout-doc.json>. OpenAPI e coleção pública diferem nos endpoints; confirmar o estilo e sandbox com o gestor. Nenhum fallback automático de POST foi implementado.
+Fontes oficiais verificadas em 03/10/2026: <https://app.mangofy.com.br/checkout/doc> e <https://app.mangofy.com.br/checkout-doc.json>, além da coleção V1 fornecida pelo responsável pela loja. A criação de Pix usa exclusivamente `POST /api/v1/payment`. `Authorization` recebe a chave diretamente, sem adicionar `Bearer`; `Store-Code` recebe o código da integração. Consulta: `GET /api/v1/payment/{payment_code}`. A variável legada `MANGOFY_API_STYLE` é ignorada para que uma configuração antiga não envie uma cobrança para a rota desatualizada. Nenhum fallback automático de POST foi implementado.
+
+`https://whitelabel-checkout.test` é o placeholder da coleção Postman. Não usar esse endereço em produção; o site recusa habilitar pagamentos quando ele está configurado. O domínio `https://checkout.mangofy.com.br` foi confirmado nos exemplos visíveis da documentação oficial. Sandbox, se existir para a conta, precisa ter o domínio fornecido pela Mangofy. Redirecionamentos HTTP não são seguidos nas chamadas autenticadas.
 
 Payload: `external_code`, `payment_method: pix`, `payment_format`, `installments: 1`, `payment_amount` em centavos (total com frete), `shipping_amount` como parcela informativa, `items`, cliente/endereço, `shipping`, `postback_url`, `pix.expires_in_days`, metadata de frete. **Confirmar a semântica do frete no sandbox**: se o provedor somar frete adicionalmente, ajustar o payload e a conciliação antes de liberar vendas. O servidor bloqueia divergência nos valores retornados.
 
-Não houve pagamento real ou sandbox, pois faltam credenciais. Testes simulam a Mangofy; cobrem preços (99/100), mínimo (4/5), teto de R$ 900 com frete e valores forjados, fretes, alteração de ticket, Pix somente, sessão sem banco, callback falso, divergência e timeout. Antes de `SHOP_READY=true`, gerar Pix de teste, conferir valores, itens/endereço disponíveis para entrega e status aprovado. Completar políticas e contato comercial. A tela normal não promete pagamento confirmado antes de consulta ao provedor.
+Credenciais reais são configuradas exclusivamente como variáveis privadas na Vercel; não ficam neste repositório, em arquivos públicos ou no bundle. Não houve cobrança real ou sandbox. Testes simulam a Mangofy; cobrem preços (99/100), mínimo (4/5), teto de R$ 900 com frete e valores forjados, fretes, alteração de ticket, Pix somente, sessão sem banco, callback falso, divergência e timeout. Antes de `SHOP_READY=true`, gerar Pix de teste, conferir valores, itens/endereço disponíveis para entrega e status aprovado. Completar políticas e contato comercial. A tela normal não promete pagamento confirmado antes de consulta ao provedor.
 
 ## Assets
 
