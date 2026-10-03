@@ -1,77 +1,72 @@
 # TapStar
 
-Loja de placas Google azul, Google preta e Instagram com NFC + QR Code. Identidade TapStar usando as duas logos fornecidas no repositório. Visual baseado nos prints enviados: hero com placas sobrepostas, fundo claro quadriculado, destaque verde, tabela de atacado e simulador escuro. Somente Pix.
+Loja pt-BR de Google azul, Google preta, Instagram e Google em L. Visual compacto, logos fornecidas no repositório, pedido mínimo de 25 placas e pagamento somente Pix. Publicação GitHub → Vercel, projeto `tap-star`: <https://tap-star-two.vercel.app/>.
 
-## Catálogo e desconto
+## Preços e entrega
 
-`public/js/catalog.js` é compartilhado pelo navegador e servidor. A soma de **todos os modelos** determina um único preço por placa:
+A soma dos quatro modelos determina a faixa. Cada modelo conserva o seu preço:
 
-| Total de placas | Preço por placa |
-| --- | --- |
-| 1 | R$ 25 |
-| 2–49 | R$ 20 |
-| 50–299 | R$ 17 |
-| 300–2.000 | R$ 15 |
+| Quantidade total | Comuns | Google em L |
+| --- | --- | --- |
+| 25–149 | R$ 9,99 | R$ 12,99 |
+| 150–299 | R$ 9,49 | R$ 12,49 |
+| 300–2.000 | R$ 8,99 | R$ 11,99 |
 
-20 Google azuis + 30 Google pretas = 50 placas, R$ 17 por unidade, R$ 850 em produtos. O frete de referência é R$ 19,90 por pedido (total R$ 869,90). Preços seguem o print; frete, especificações, disponibilidade e prazos precisam ser confirmados pelo responsável antes de aceitar pagamentos. Carrinho antigo de peças decorativas não é reaproveitado.
+Frete grátis: 6 dias. Frete Full: R$ 16,90, 2 dias úteis. Prazos estimados após confirmação do Pix. Escolha de frete aparece no carrinho e checkout e é recalculada no servidor. Simulador inicia com 5 de cada modelo (20), mostra quantas faltam para 25 e impede finalizar abaixo do mínimo. Carrinho pode ser montado aos poucos; API exige mínimo de 25.
 
-As peças físicas exigem configuração do destino NFC/QR para cada negócio. Este site não inclui plataforma de links dinâmicos, painel de ativação, fabricação, envio ou integração com o Google Business Profile. Não promete uma plataforma ainda inexistente.
+`public/js/catalog.js` é a fonte compartilhada de preços e entrega. Valores enviados pelo navegador não são confiados. O modelo em L usa ilustração gerada, indicada no catálogo; confirmar acabamento com fornecedor. A configuração física dos destinos NFC/QR e um eventual serviço de QR dinâmico são operações separadas. Nenhuma plataforma de gestão de placas está implementada.
 
-## Desenvolvimento e deploy
+## Sem banco próprio
 
-Node.js 24, sem dependências de aplicação de terceiros:
+Não há Redis, banco de pedidos, administração ou histórico local de pedidos. A Mangofy recebe os itens, cliente e endereço; o site consulta o pagamento diretamente por `payment_code`. Confirmar na conta Mangofy a disponibilidade desses dados para expedição antes de aceitar vendas. Não há automação de despacho.
 
-```sh
-npm run dev
-npm test
-npm run build
-```
+1. `POST /api/checkout`, `action: prepare`: valida mínimo, modelos, frete, cliente e origem. Retorna ticket assinado, com referência e hash dos dados. Não gera cobrança.
+2. `action: create` + ticket: confere o hash, recalcula os valores e faz um único POST Pix nessa execução.
+3. A resposta contém recibo assinado com código Mangofy, referência e valores. O navegador guarda recibo e QR; não grava nome, documento, telefone ou endereço nesse armazenamento.
+4. `GET /api/status/{pedido_id}` com Bearer recibo: valida assinatura, consulta a Mangofy e confere referência, método, código, total e frete antes de informar aprovação.
+5. `POST /api/webhook?token=...`: ticket assinado por transação; consulta a Mangofy, nunca confia na aprovação do corpo. Apenas confirma recebimento, sem persistir estado ou iniciar entrega.
 
-Para configuração local: `node --env-file=.env scripts/dev.mjs`. Build copia `public/` para `dist/`; Vercel serve `api/` separadamente. Projeto Vercel `tap-star`, conectado a `andreysimonetto07/oferta-plaquinha`, branch main. Produção: <https://tap-star-two.vercel.app/>. Framework Other, build `npm run build`, output `dist`, Node 24; configuração em `vercel.json`.
+Tickets de preparação: 20 minutos. Recibos e callbacks: 7 dias. Tokens não ficam em parâmetros públicos da página de acompanhamento. `ORDER_SECRET` permanece somente no servidor.
 
-## Configuração de Pix
+### Repetições e timeout
 
-Não houve pagamento real nem teste em sandbox Mangofy: faltam credenciais e configuração do banco. Testes usam provedor e Redis simulados. O checkout fica bloqueado enquanto a configuração não estiver pronta. Nunca colocar chaves no frontend, repositório ou conversa.
+Sem persistência e sem idempotência documentada pelo provedor, não existe garantia de deduplicação entre todas as instâncias Vercel. A documentação pública consultada não define header de idempotência ou busca por código externo.
+
+A proteção do site usa: clique bloqueado enquanto processa, Web Lock entre abas compatíveis, marcador persistente no navegador escrito **antes** de criar o Pix, e cache temporário por instância para repetir a resposta de uma tentativa. Esse cache não é banco ou lock distribuído; expira após 24h e pode sumir ao reiniciar a função. Limite de requisições também é local por instância, não uma garantia global.
+
+O frontend **não repete o POST de criação** após perda da conexão, erro ou resultado incerto. Refresh mantém o bloqueio. Resultado incerto exige conferência manual na Mangofy usando a referência `TS-...`; não criar outra cobrança. Sem `payment_code` retornado, o site não consegue recuperar automaticamente esse resultado. Para deduplicação global garantida, o provedor precisa oferecer contrato de idempotência verificável, ou será necessário armazenamento persistente.
+
+Pagamentos pendentes podem ser reabertos no mesmo navegador. Aprovação ou status terminal confirmado limpa somente a tentativa correspondente. Não limpar manualmente os dados do navegador durante uma cobrança pendente. A confirmação nunca depende apenas de parâmetros da URL.
+
+## Configuração
+
+Node.js 24, sem dependências de aplicação. `npm run dev`, `npm test`, `npm run build`. Para variáveis locais: `node --env-file=.env scripts/dev.mjs`. Build copia `public/` para `dist/`, e Vercel serve `api/` separadamente. Framework Other; build `npm run build`; output `dist`; branch main.
 
 | Variável | Uso |
 | --- | --- |
-| `MANGOFY_API_KEY` | Header Authorization como fornecido pela Mangofy |
-| `MANGOFY_STORE_CODE` | Header Store-Code |
-| `MANGOFY_BASE_URL` | Base oficial ou sandbox confirmado pelo gestor |
-| `MANGOFY_API_STYLE` | `method` para `/api/v1/payment/pix`; `unified` para `/api/v1/payment` |
-| `APP_URL` | URL HTTPS da loja para validar origem e postback |
-| `ORDER_SECRET` | Segredo aleatório de pelo menos 32 caracteres |
-| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Banco Redis REST privado e persistente |
-| `SELLER_DETAILS` | Identificação e contato do vendedor, exibidos no rodapé |
-| `SHOP_READY` | `true` somente após completar configuração comercial e validar Pix |
+| `MANGOFY_API_KEY` | Header Authorization fornecido pela Mangofy |
+| `MANGOFY_STORE_CODE` | Store-Code da integração |
+| `MANGOFY_BASE_URL` | Base oficial/sandbox confirmado pelo gestor |
+| `MANGOFY_API_STYLE` | `method`: `/api/v1/payment/pix`; `unified`: `/api/v1/payment` |
+| `APP_URL` | URL HTTPS da loja para origem e callback |
+| `ORDER_SECRET` | Segredo aleatório com pelo menos 32 caracteres |
+| `SELLER_DETAILS` | Identificação e contato do vendedor |
+| `SHOP_READY` | `true` após configurar e testar Pix |
 
-Gerar segredo: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Banco e credenciais não foram provisionados. Somente `payment_method: 'pix'` é aceito. Outros métodos são rejeitados no servidor; não há campos, processamento ou armazenamento de dados de cartão.
+Não há variáveis de banco. Não commitir chaves reais. Gerar segredo com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. `/api/config` divulga somente disponibilidade, Pix, armazenamento no provedor e identificação pública.
 
-## Contrato Mangofy
+## Contrato e teste Mangofy
 
-Fontes oficiais verificadas na implementação inicial em 03/10/2026: <https://app.mangofy.com.br/checkout/doc> e <https://app.mangofy.com.br/checkout-doc.json>.
+Fontes oficiais verificadas em 03/10/2026: <https://app.mangofy.com.br/checkout/doc> e <https://app.mangofy.com.br/checkout-doc.json>. OpenAPI e coleção pública diferem nos endpoints; confirmar o estilo e sandbox com o gestor. Nenhum fallback automático de POST foi implementado.
 
-O OpenAPI incorporado descreve endpoints separados e base `https://checkout.mangofy.com.br`; a coleção Postman descreve endpoint unificado e base `.test` ilustrativa. O código permite escolher a versão confirmada pelo gestor. Não faz fallback de POST, para evitar cobranças duplicadas. Confirmar sandbox e contrato antes de habilitar vendas.
+Payload: `external_code`, `payment_method: pix`, `payment_format`, `installments: 1`, `payment_amount` em centavos (total com frete), `shipping_amount` como parcela informativa, `items`, cliente/endereço, `shipping`, `postback_url`, `pix.expires_in_days`, metadata de frete. **Confirmar a semântica do frete no sandbox**: se o provedor somar frete adicionalmente, ajustar o payload e a conciliação antes de liberar vendas. O servidor bloqueia divergência nos valores retornados.
 
-Payload: `external_code`, `payment_method: pix`, `payment_format`, `installments: 1`, `payment_amount` em centavos (total com frete), `shipping_amount` (parcela informativa), `items` com código, nome, quantidade, preço e `digital_flag: false`, `customer` com documento, telefone, IP e endereço, `shipping`, `postback_url` e `pix.expires_in_days`.
-
-**Validar a semântica do frete no sandbox:** o exemplo público não demonstra frete não zero. O servidor confere total e frete retornados e bloqueia divergências. Se o provedor somar frete adicionalmente, ajustar o payload e a conciliação antes de abrir vendas.
-
-Resposta: `payment_code`, `payment_status`, `pix.pix_qrcode_text`, `pix.pix_qrcode_image`, `pix.pix_expires_at`. Não usa o endpoint fictício do prompt inicial.
-
-## Rotas e segurança
-
-- `GET /api/config`: disponibilidade, `payment_method: pix` e dados públicos do vendedor.
-- `POST /api/checkout`: valida CPF/CNPJ, dados e endereço; recalcula preço agregado e frete; exige mesma origem e UUID de idempotência; persiste pedido antes de gerar Pix.
-- `GET /api/status/{pedido_id}`: exige token exclusivo; consulta o provedor; valida pedido, código, método, total e frete; não expõe documento ou endereço.
-- `POST /api/webhook?order=...&token=...`: token HMAC por pedido. A aprovação do corpo nunca é confiada diretamente: consulta autenticada ao provedor e conciliação antes de atualizar status.
-
-Chaves Redis `order:OP-...`, `checkout:<uuid>` e `rate:...`. Pedidos persistem para entrega; definir política de retenção. Idempotência dura 24h. Timeout de criação gera `verification_required`: não iniciar outra cobrança; consultar pelo código ou conciliar o pedido no provedor. Nenhuma entrega automática ou painel administrativo está implementado.
-
-## Verificação antes de liberar pagamentos
-
-Confirmar os dados comerciais e completar `public/politicas.html`. Com sandbox e Redis de teste, conferir valor, itens, endereço, QR, validade, aprovação, callbacks repetidos, token inválido, timeout e idempotência. Ativar `SHOP_READY` apenas após essas verificações. A página de acompanhamento só confirma `approved` consultado no servidor.
+Não houve pagamento real ou sandbox, pois faltam credenciais. Testes simulam a Mangofy; cobrem preços, mínimo, fretes, alteração de ticket, Pix somente, sessão sem banco, callback falso, divergência e timeout. Antes de `SHOP_READY=true`, gerar Pix de teste, conferir valores, itens/endereço disponíveis para entrega e status aprovado. Completar políticas e contato comercial. A tela normal não promete pagamento confirmado antes de consulta ao provedor.
 
 ## Assets
 
-`IMG_2723.PNG` e `IMG_2724.PNG` originais foram preservadas. Cópias usadas em `public/assets/tapstar-cover.png` e `tapstar-logo.png`. Fotos de modelos provenientes dos assets públicos da referência solicitada <https://www.tapsmart.com.br/>: `/landing/placa-azul.webp`, `/landing/placa-preta-mockup.webp` e `/landing/placa-instagram.webp`. Fontes Geist e Geist Mono com licença SIL OFL em `public/assets/FONT-LICENSE.txt`. Nenhuma métrica de vendas ou depoimento fictício foi incluído.
+Logos originais `IMG_2723.PNG`, `IMG_2724.PNG` preservadas; cópias em `public/assets/`. Fotos comuns são os assets públicos da referência solicitada TapSmart (`/landing/placa-azul.webp`, `/landing/placa-preta-mockup.webp`, `/landing/placa-instagram.webp`).
+
+`public/assets/google-l.png`: ilustração criada com a ferramenta integrada de geração de imagens. Prompt: placa Google azul para avaliações, NFC e QR ilustrativo, acrílico dobrado em L com base de balcão, vista de três quartos, fotografia de produto em fundo transparente; referência da arte da Google azul. Nenhuma marca TapSmart ou foto de fornecedor é atribuída a essa ilustração.
+
+Fontes Geist/Geist Mono com licença SIL OFL em `public/assets/FONT-LICENSE.txt`.
