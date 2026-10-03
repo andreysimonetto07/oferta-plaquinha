@@ -41,7 +41,7 @@ Pagamentos pendentes podem ser reabertos no mesmo navegador. Aprovação ou stat
 
 ## Configuração
 
-Node.js 24, sem dependências de aplicação. `npm run dev`, `npm test`, `npm run build`. Para variáveis locais: `node --env-file=.env scripts/dev.mjs`. Build copia `public/` para `dist/`, e Vercel serve `api/` separadamente. Framework Other; build `npm run build`; output `dist`; branch main.
+Node.js 24, sem dependências de aplicação. `npm run dev`, `npm test`, `npm run build`. Para variáveis locais: `node --env-file=.env scripts/dev.mjs`. Build copia `public/` para `dist/`, e Vercel serve `api/` separadamente. Cada publicação usa JS e CSS em `/static/<hash>/`, com todos os imports relativos da mesma versão. O hash muda quando HTML, JS ou CSS mudam. HTML e caminhos antigos de JS/CSS usam `Cache-Control: no-store`; arquivos com hash usam cache imutável. Uma aba que já estava aberta com código antigo precisa ser recarregada ou reaberta; não apagamos carrinhos nem recibos Pix para atualizar a interface. Framework Other; build `npm run build`; output `dist`; branch main.
 
 | Variável | Uso |
 | --- | --- |
