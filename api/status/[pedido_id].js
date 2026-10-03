@@ -1,0 +1,5 @@
+import {begin,fail,sameSecret,tokenFor,ipKey} from '../../lib/security.js';
+import {HttpError} from '../../lib/validation.js';
+import {getOrder,saveOrder,rateLimit} from '../../lib/db.js';
+import {gateway,verifyPayment,publicPayment} from '../../lib/mangofy.js';
+export default async function handler(req,res){if(!begin(req,res,'GET'))return;try{const id=req.query.pedido_id;if(typeof id!=='string'||!/^OP-[a-f0-9-]{36}$/.test(id))throw new HttpError(404,'Pedido não encontrado.');const token=req.headers.authorization?.replace(/^Bearer /,'');if(!sameSecret(token,tokenFor(id)))throw new HttpError(403,'Sessão do pedido inválida. Use o navegador em que fez a compra.');await rateLimit(`status:${ipKey(req)}`,100,300);const order=await getOrder(id);if(!order)throw new HttpError(404,'Pedido não encontrado.');if(!order.payment_code)return res.status(200).json(publicPayment(order));const payment=await gateway(`/api/v1/payment/${encodeURIComponent(order.payment_code)}`);verifyPayment(order,payment);order.status=payment.payment_status;order.updated_at=new Date().toISOString();await saveOrder(order);res.status(200).json(publicPayment(order,payment));}catch(e){fail(res,e);}}
