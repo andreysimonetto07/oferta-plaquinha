@@ -58,4 +58,4 @@ Para validar a integração externa, gerar uma cobrança usando dados de comprad
 
 O CSS contém regras responsivas, mas um celular real não foi testado. A tentativa de abrir o servidor local no navegador remoto foi bloqueada por `ERR_BLOCKED_BY_CLIENT`; os testes do cliente foram executados em DOM isolado e os testes visuais foram feitos no site publicado em desktop. A consulta aos logs de runtime pela conexão Vercel retornou 403; o resultado da API foi verificado diretamente por HTTP.
 
-Carrinhos de teste removidos após a verificação. Nenhuma chave real aparece neste relatório ou nas alterações do repositório.
+O lote de 6 placas usado no teste entre abas foi removido. Depois foi preparado, no navegador remoto, um novo lote mínimo de 5 placas comuns, frete grátis e total R$ 49,95, para o usuário preencher os dados válidos e concluir a validação real do Pix. Nenhuma cobrança desse lote foi criada. Nenhuma chave real aparece neste relatório ou nas alterações do repositório.
