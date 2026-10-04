@@ -55,6 +55,10 @@ Node.js 24, sem dependências de aplicação. `npm run dev`, `npm test`, `npm ru
 
 Não há variáveis de banco. Não commitir chaves reais. Gerar segredo com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. `/api/config` divulga somente disponibilidade, Pix, armazenamento no provedor e identificação pública.
 
+### Mensagem de loja em configuração
+
+`/api/config` precisa retornar `ready: true` para liberar o botão Pix. Na configuração atual, `SELLER_DETAILS` também é obrigatório: preencher somente as chaves da Mangofy, URL, segredo e `SHOP_READY` deixa o pagamento desativado. Usar a identificação comercial real da loja; o valor aparece publicamente no site. Conferir se todas as variáveis estão em **Production** e fazer uma nova publicação após salvá-las, pois uma publicação existente conserva suas variáveis anteriores. Não remover a validação de credenciais para ocultar a mensagem.
+
 ## Contrato e teste Mangofy
 
 Fontes oficiais verificadas em 03/10/2026: <https://app.mangofy.com.br/checkout/doc> e <https://app.mangofy.com.br/checkout-doc.json>, além da coleção V1 fornecida pelo responsável pela loja. A criação de Pix usa exclusivamente `POST /api/v1/payment`. `Authorization` recebe a chave diretamente, sem adicionar `Bearer`; `Store-Code` recebe o código da integração. Consulta: `GET /api/v1/payment/{payment_code}`. A variável legada `MANGOFY_API_STYLE` é ignorada para que uma configuração antiga não envie uma cobrança para a rota desatualizada. Nenhum fallback automático de POST foi implementado.
