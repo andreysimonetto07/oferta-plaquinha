@@ -11,7 +11,7 @@ A soma dos quatro modelos determina a faixa. Cada modelo conserva o seu preço:
 | 5–99 | R$ 9,99 | R$ 12,99 |
 | 100 ou mais | R$ 7,49 | R$ 12,99 |
 
-Frete grátis: 6 dias. Frete Full: R$ 16,90, 2 dias úteis. Prazos estimados após confirmação do Pix. Escolha de frete aparece no carrinho e checkout e é recalculada no servidor. Seletores do catálogo e simulador iniciam em zero, sem selecionar modelos pelo cliente. Carrinho pode ser montado aos poucos; API exige mínimo de 5 no pedido inteiro. O desconto das placas comuns começa exatamente em 100 unidades somadas; Google em L mantém R$ 12,99.
+Frete grátis: 6 dias úteis. Frete Full: R$ 16,90, 2 dias úteis. Prazos estimados após confirmação do Pix. Escolha de frete aparece no carrinho e checkout e é recalculada no servidor. Seletores do catálogo e simulador iniciam em zero, sem selecionar modelos pelo cliente. Carrinho pode ser montado aos poucos; API exige mínimo de 5 no pedido inteiro. O desconto das placas comuns começa exatamente em 100 unidades somadas; Google em L mantém R$ 12,99.
 
 O limite é **R$ 900,00 por pagamento, incluindo frete**, em centavos (`MAX_TOTAL_CENTS=90000`). Carrinho e simulador mostram totais acima do limite para permitir ajustes, mas bloqueiam a finalização. Checkout revalida ao trocar frete; API recalcula e rejeita acima do teto tanto no `prepare` quanto no `create`, antes de chamar Mangofy. Não dividimos automaticamente uma compra em vários Pix. Sem contas e sem armazenamento próprio, esse teto é por transação; não controla um limite acumulado por CPF/conta. O limite técnico de 2.000 unidades continua servindo apenas para validar entradas.
 
@@ -51,7 +51,7 @@ Se a Mangofy retornou um `payment_code` associado ao pedido, ele é preservado m
 
 ## Configuração
 
-Executar `npm ci` antes dos comandos abaixo. `jsdom` e `qrcode` são dependências exclusivamente dos testes; não são incluídas no site ou nas funções de pagamento. A suíte contém 33 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
+Executar `npm ci` antes dos comandos abaixo. `jsdom` e `jsqr` verificam a interface e decodificam os QR de teste. `qrcode` 1.5.4 e `esbuild` geram o encoder local do navegador; as funções de pagamento não dependem dessas bibliotecas. A suíte contém 37 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
 
 O checkout acompanha alterações de quantidade e entrega feitas em outra aba. Se uma alteração ainda não apareceu na tela no momento do clique, ele pede que o cliente confira o novo total antes de gerar o Pix. Durante a requisição, os campos ficam bloqueados para manter os dados revisados.
 
@@ -90,3 +90,11 @@ Logos originais `IMG_2723.PNG`, `IMG_2724.PNG` preservadas; cópias em `public/a
 `public/assets/google-l.png`: ilustração criada com a ferramenta integrada de geração de imagens. Prompt: placa Google azul para avaliações, NFC e QR ilustrativo, acrílico dobrado em L com base de balcão, vista de três quartos, fotografia de produto em fundo transparente; referência da arte da Google azul. Nenhuma marca TapSmart ou foto de fornecedor é atribuída a essa ilustração.
 
 Fontes Geist/Geist Mono com licença SIL OFL em `public/assets/FONT-LICENSE.txt`.
+
+## Interface azul e exibição local do QR Pix
+
+A interface usa azul, sem citar o gateway nos textos das páginas, diagnóstico, acompanhamento ou erros retornados ao comprador. As variáveis privadas e o contrato de integração conservam seus nomes técnicos. Frete grátis: **6 dias úteis**; Full: **2 dias úteis**, R$ 16,90. O prazo compartilhado em `catalog.js` também é enviado nos metadados da cobrança.
+
+A imagem do QR não depende de `pix_qrcode_image`. O checkout gera um SVG no próprio navegador a partir do **texto exato** de `pix_qrcode_text`, preservando a margem de quatro módulos e contraste preto/branco. Não consulta serviço externo de QR e não cria outra cobrança. Um Pix já salvo sem imagem passa a exibir o QR ao recarregar; recibo, carrinho e copia e cola permanecem disponíveis. Datas ISO com fuso explícito aparecem em português, no horário de Brasília.
+
+`npm run pretest`, `prebuild` e `predev` compilam `scripts/pix-qr-entry.mjs` em `public/js/vendor/pix-qr.js`. Esse bundle e suas licenças MIT ficam versionados. A versão do storefront inclui o encoder e seus imports no hash. O teste com `jsqr` decodifica a imagem gerada e confere igualdade exata do texto; o teste da interface comprova o QR sem imagem do provedor e a reabertura sem nova chamada de criação.

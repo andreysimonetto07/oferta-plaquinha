@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+await mkdir(root+'public/js/vendor',{recursive:true});
+await build({entryPoints:[root+'scripts/pix-qr-entry.mjs'],outfile:root+'public/js/vendor/pix-qr.js',bundle:true,format:'esm',platform:'browser',target:'es2020',minify:true,legalComments:'inline',banner:{js:'/* Local QR encoder: node-qrcode 1.5.4 and dijkstrajs. MIT; see LICENSE.txt. */'}});
+const qrLicense=await readFile(root+'node_modules/qrcode/license','utf8');
+const graphLicense=await readFile(root+'node_modules/dijkstrajs/LICENSE.md','utf8');
+await writeFile(root+'public/js/vendor/LICENSE.txt','node-qrcode 1.5.4\n'+qrLicense+'\n\ndijkstrajs\n'+graphLicense);
+console.log('Local Pix QR encoder built.');

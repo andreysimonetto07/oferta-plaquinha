@@ -2,6 +2,7 @@ import {quote,money,MIN_QUANTITY,MAX_TOTAL_CENTS} from './catalog.js';
 import {getCart,saveCart,getShipping,saveShipping,escapeHTML,shopConfig,toast,CART_KEY,SHIPPING_KEY} from './common.js';
 import {summary,shippingOptions} from './cart.js';
 import {appendPaymentDiagnostic} from './payment-diagnostics.js';
+import {pixImageSource,pixExpiryText} from './pix-display.js';
 const form=document.querySelector('#checkout-form'),error=document.querySelector('#checkout-error'),button=document.querySelector('#pay-button'),result=document.querySelector('#payment-result');
 const ATTEMPT_KEY='tapstar_pix_attempt_v1';
 let attempt;try{attempt=JSON.parse(localStorage.getItem(ATTEMPT_KEY)||'null');}catch{}
@@ -32,7 +33,7 @@ function syncSelection(){
 window.addEventListener('storage',event=>{if(event.key===CART_KEY||event.key===SHIPPING_KEY||event.key===null)syncSelection();});
 document.querySelector('#zipcode').value=sessionStorage.getItem('delivery_zip')||'';
 shopConfig().then(value=>{config=value;updatePayButton();});
-export async function criarCheckoutMangofy(data,key){const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:JSON.stringify(data)});const response=await r.json();if(!r.ok)throw Error(response.error||'Não foi possível iniciar o pagamento.');return response;}
+export async function criarPagamentoPix(data,key){const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:JSON.stringify(data)});const response=await r.json();if(!r.ok)throw Error(response.error||'Não foi possível iniciar o pagamento.');return response;}
 function keepAttempt(){localStorage.setItem(ATTEMPT_KEY,JSON.stringify(attempt));}
 function showUnknown(){form.hidden=true;result.hidden=false;result.innerHTML='<h2>Vamos conferir seu Pix.</h2><p>O resultado desta tentativa ainda não foi confirmado. Consulte o atendimento antes de gerar outra cobrança.</p>';const p=document.createElement('p');p.className='small-note';p.textContent=`Referência: ${attempt?.order_id||'consulte o atendimento'}`;result.append(p);appendPaymentDiagnostic(result,attempt?.response?.failure);if(attempt?.response?.access_token){const a=document.createElement('a');a.className='button secondary';a.href=`/obrigado.html?pedido=${encodeURIComponent(attempt.order_id)}`;a.textContent='Consultar ou recuperar este Pix';result.append(a);}}
 function showPayment(data){
@@ -40,10 +41,11 @@ function showPayment(data){
  if(data.status==='approved'){saveCart([]);localStorage.removeItem(ATTEMPT_KEY);location.href=`/obrigado.html?pedido=${encodeURIComponent(data.order_id)}`;return;}
  if(!data.pix?.text){showUnknown();return;}
  result.innerHTML='<span class="eyebrow">PIX GERADO</span><h2>Pronto para pagar.</h2><p>Escaneie no aplicativo do banco ou copie o código Pix.</p>';
- if(data.pix.image){const img=document.createElement('img');img.src=data.pix.image;img.alt='QR Code Pix';result.append(img);}
+ const image=pixImageSource(data.pix);
+ if(image){const img=document.createElement('img');img.src=image;img.alt='QR Code Pix';img.width=280;img.height=280;result.append(img);}
  const area=document.createElement('textarea');area.readOnly=true;area.value=data.pix.text;area.setAttribute('aria-label','Código Pix copia e cola');result.append(area);
  const copy=document.createElement('button');copy.className='button wide';copy.type='button';copy.textContent='Copiar código Pix';copy.onclick=async()=>{try{await navigator.clipboard.writeText(data.pix.text);toast('Pix copiado.');}catch{area.select();toast('Selecione e copie o código.');}};result.append(copy);
- const message=document.createElement('p');message.className='small-note';message.textContent=data.pix.expires_at?`Validade: ${data.pix.expires_at}`:'Confira a validade no aplicativo do banco.';result.append(message);
+ const message=document.createElement('p');message.className='small-note';message.textContent=pixExpiryText(data.pix.expires_at);result.append(message);
  const link=document.createElement('a');link.href=`/obrigado.html?pedido=${encodeURIComponent(data.order_id)}`;link.className='button secondary wide';link.textContent='Já paguei · verificar confirmação';result.append(link);
 }
 if(attempt?.state==='complete'&&attempt.response)showPayment(attempt.response);
@@ -66,10 +68,10 @@ async function submitPix(){
   const reviewed=quote(data.items,data.shipping_method);
   const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(data))),fingerprint=Array.from(new Uint8Array(hash),n=>n.toString(16).padStart(2,'0')).join('');
   const key=latest?.fingerprint===fingerprint?latest.key:crypto.randomUUID();
-  const prepared=await criarCheckoutMangofy({...data,action:'prepare'},key);
+  const prepared=await criarPagamentoPix({...data,action:'prepare'},key);
   if(prepared.total_cents!==reviewed.total_cents||prepared.shipping_cents!==reviewed.shipping_cents)throw Error('Os preços foram atualizados. Recarregue a página e confira o pedido antes de gerar o Pix.');
   attempt={key,fingerprint,order_id:prepared.order_id,state:'sent'};keepAttempt();sent=true;button.textContent='Gerando seu Pix…';
-  const response=await criarCheckoutMangofy({...data,action:'create',checkout_token:prepared.checkout_token},key);
+  const response=await criarPagamentoPix({...data,action:'create',checkout_token:prepared.checkout_token},key);
   attempt.state=response.status==='verification_required'?'unknown':'complete';attempt.response=response;keepAttempt();
   localStorage.setItem(`tapstar-order:${response.order_id}`,response.access_token);localStorage.setItem('tapstar_last_order',response.order_id);showPayment(response);
  }catch(e){

@@ -7,7 +7,7 @@ export const PRICE_TIERS=[
  {min:100,max:2000,cents:749,l_cents:1299,label:'100 placas ou mais'}
 ];
 export const SHIPPING_METHODS=[
- {id:'standard',name:'Frete grátis',cents:0,delivery:'6 dias'},
+ {id:'standard',name:'Frete grátis',cents:0,delivery:'6 dias úteis'},
  {id:'full',name:'Frete Full',cents:1690,delivery:'2 dias úteis'}
 ];
 export const PRODUCTS=[

@@ -34,7 +34,7 @@ export default async function handler(req,res){
     // Preserve a matching provider reference even if QR or amounts need review.
     const failure=paymentFailure(error),payment_code=paymentReference(order,payment);
     logPayment('tapstar.pix.create.failed',id,{...failure,has_payment_code:!!payment_code});
-    return {code:202,data:{order_id:id,status:'verification_required',total_cents:q.total_cents,failure,access_token:signToken('receipt',{...claims,failure,...(payment_code?{payment_code}:{})}),message:'Não gere outro Pix. O resultado desta tentativa precisa ser conferido na Mangofy.'}};
+    return {code:202,data:{order_id:id,status:'verification_required',total_cents:q.total_cents,failure,access_token:signToken('receipt',{...claims,failure,...(payment_code?{payment_code}:{})}),message:'Não gere outro Pix. O resultado desta tentativa precisa ser conferido pelo atendimento.'}};
    }
   });
   return res.status(result.code).json(result.data);

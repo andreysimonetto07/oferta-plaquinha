@@ -32,6 +32,7 @@ globalThis.fetch=async(url,options={})=>{
    payments.set(payment.payment_code,payment);
    if(scenario==='lost-response')throw new DOMException('TEST_ONLY_TIMEOUT_AFTER_CREATION','TimeoutError');
    if(scenario==='missing-pix'){delete payment.pix;return Response.json(payment);}
+   if(scenario==='text-only')delete payment.pix.pix_qrcode_image;
    return Response.json(payment);
   }
   statusCalls++;
@@ -103,7 +104,7 @@ test('checkout renders QR and copy-and-paste, blocks duplicate clicks and saves 
  await generated();assert.equal(providerCreates,1);
  assert.equal(document.querySelector('#checkout-form').hidden,true);
  assert.equal(document.querySelector('textarea').value,pixText);
- assert.equal(document.querySelector('img[alt="QR Code Pix"]').src,pixImage);
+ assert.match(document.querySelector('img[alt="QR Code Pix"]').src,/^data:image\/svg\+xml;base64,/);
  [...document.querySelectorAll('button')].find(el=>el.textContent==='Copiar código Pix').click();
  await until(()=>copied===pixText);
  const saved=JSON.stringify(storageSnapshot());
@@ -220,4 +221,16 @@ test('a missing QR keeps its provider code and read-only status retrieval restor
  assert.equal(providerCreates,1);assert.equal(statusCalls,1);
  await page('checkout.html',storageSnapshot());await generated();
  assert.equal(providerCreates,1);assert.equal(document.querySelector('textarea').value,pixText);
+});
+
+test('a text-only Pix shows a local QR and reload restores it without another provider request',async()=>{
+ await setup('text-only');validForm();submit();await generated();
+ const image=document.querySelector('img[alt="QR Code Pix"]').src;
+ assert.match(image,/^data:image\/svg\+xml;base64,/);
+ assert.equal(providerCreates,1);assert.equal(statusCalls,0);
+ assert.equal(JSON.parse(localStorage.getItem('tapstar_pix_attempt_v1')).response.pix.image,null);
+ await page('checkout.html',storageSnapshot());await generated();
+ assert.equal(document.querySelector('img[alt="QR Code Pix"]').src,image);
+ assert.equal(document.querySelector('textarea').value,pixText);
+ assert.equal(providerCreates,1);assert.equal(statusCalls,0);
 });

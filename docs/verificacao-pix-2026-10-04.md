@@ -69,3 +69,11 @@ A correção adiciona logs e diagnósticos permitidos, preserva referência corr
 Verificação local: **33 testes passaram**, incluindo autorização HTTP 401, bloqueio HTTP 403 em HTML, validação HTTP 422, serviço HTTP 503, resposta inválida, timeout, falha de conexão, ausência do Pix, valores divergentes, proteção contra vazamento, recibo antigo, cobrança de outro pedido, recuperação do QR e persistência após recarregar. Todas as respostas do provedor nesses testes são simuladas.
 
 A API de logs da Vercel respondeu HTTP 403: a conexão não tem permissão para essa consulta. O diagnóstico antigo não foi registrado pelo código anterior e não pode ser reconstruído deste print. A causa real na Mangofy e a existência da cobrança seguem sem confirmação. Não orientar apagar todos os dados do navegador ou emitir novo Pix antes de conferir o painel.
+
+## Ajustes após o print do Pix copia e cola
+
+O novo print fornecido pelo responsável mostra a tela “Pix gerado”, com código copia e cola e validade, mas sem imagem. Isso confirma a presença do código no navegador, não pagamento aprovado. O frontend anterior só inseria a imagem quando o campo `pix.image` estava disponível; ausência, formato não aceito ou falha de carregamento podiam deixar somente o texto.
+
+O checkout agora gera o QR localmente a partir do mesmo texto já recebido. Não houve geração de cobrança real adicional para testar esta alteração. Interface alterada para azul, todas as menções ao gateway removidas das telas e mensagens públicas, prazo grátis padronizado para 6 dias úteis.
+
+**37 testes passaram**. O leitor independente `jsqr` decodificou o QR gerado e recuperou o texto exato, inclusive em código longo; o DOM confirmou imagem sem `pix_qrcode_image`, persistência ao recarregar, uma única criação simulada e nenhuma consulta adicional ao provedor para obter a imagem.
