@@ -21,7 +21,7 @@ O limite é **R$ 900,00 por pagamento, incluindo frete**, em centavos (`MAX_TOTA
 
 Não há Redis, banco de pedidos, administração ou histórico local de pedidos. A Mangofy recebe os itens, cliente e endereço; o site consulta o pagamento diretamente por `payment_code`. Confirmar na conta Mangofy a disponibilidade desses dados para expedição antes de aceitar vendas. Não há automação de despacho.
 
-1. `POST /api/checkout`, `action: prepare`: valida mínimo, teto de R$ 900, modelos, frete, cliente e origem. Retorna ticket assinado, com referência e hash dos dados. Não gera cobrança.
+1. `POST /api/checkout`, `action: prepare`: valida mínimo, teto de R$ 900, modelos, frete, cliente e origem. Retorna ticket assinado, referência, hash dos dados e valores recalculados (`total_cents`, `shipping_cents`). O cliente confere esses valores antes de criar o Pix; uma diferença de preço exige recarregar a página. Não gera cobrança.
 2. `action: create` + ticket: confere o hash, recalcula os valores e faz um único POST Pix nessa execução.
 3. A resposta contém recibo assinado com código Mangofy, referência e valores. O navegador guarda recibo e QR; não grava nome, documento, telefone ou endereço nesse armazenamento.
 4. `GET /api/status/{pedido_id}` com Bearer recibo: valida assinatura, consulta a Mangofy e confere referência, método, código, total e frete antes de informar aprovação.
@@ -40,6 +40,10 @@ O frontend **não repete o POST de criação** após perda da conexão, erro ou 
 Pagamentos pendentes podem ser reabertos no mesmo navegador. Aprovação ou status terminal confirmado limpa somente a tentativa correspondente. Não limpar manualmente os dados do navegador durante uma cobrança pendente. A confirmação nunca depende apenas de parâmetros da URL.
 
 ## Configuração
+
+Executar `npm ci` antes dos comandos abaixo. `jsdom` e `qrcode` são dependências exclusivamente dos testes; não são incluídas no site ou nas funções de pagamento. A suíte contém 27 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
+
+O checkout acompanha alterações de quantidade e entrega feitas em outra aba. Se uma alteração ainda não apareceu na tela no momento do clique, ele pede que o cliente confira o novo total antes de gerar o Pix. Durante a requisição, os campos ficam bloqueados para manter os dados revisados.
 
 Node.js 24, sem dependências de aplicação. `npm run dev`, `npm test`, `npm run build`. Para variáveis locais: `node --env-file=.env scripts/dev.mjs`. Build copia `public/` para `dist/`, e Vercel serve `api/` separadamente. Cada publicação usa JS e CSS em `/static/<hash>/`, com todos os imports relativos da mesma versão. O hash muda quando HTML, JS ou CSS mudam. HTML e caminhos antigos de JS/CSS usam `Cache-Control: no-store`; arquivos com hash usam cache imutável. Uma aba que já estava aberta com código antigo precisa ser recarregada ou reaberta; não apagamos carrinhos nem recibos Pix para atualizar a interface. Framework Other; build `npm run build`; output `dist`; branch main.
 

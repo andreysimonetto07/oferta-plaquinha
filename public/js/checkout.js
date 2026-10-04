@@ -1,10 +1,10 @@
 import {quote,money,MIN_QUANTITY,MAX_TOTAL_CENTS} from './catalog.js';
-import {getCart,saveCart,getShipping,saveShipping,escapeHTML,shopConfig,toast} from './common.js';
+import {getCart,saveCart,getShipping,saveShipping,escapeHTML,shopConfig,toast,CART_KEY,SHIPPING_KEY} from './common.js';
 import {summary,shippingOptions} from './cart.js';
 const form=document.querySelector('#checkout-form'),error=document.querySelector('#checkout-error'),button=document.querySelector('#pay-button'),result=document.querySelector('#payment-result');
 const ATTEMPT_KEY='tapstar_pix_attempt_v1';
 let attempt;try{attempt=JSON.parse(localStorage.getItem(ATTEMPT_KEY)||'null');}catch{}
-const cart=getCart();
+let cart=getCart();
 let config={ready:false},busy=false,currentQuote;
 function updatePayButton(){
  const eligible=currentQuote&&currentQuote.quantity>=MIN_QUANTITY&&currentQuote.within_limit;
@@ -12,6 +12,7 @@ function updatePayButton(){
  button.textContent=busy?'Preparando seu Pix…':currentQuote&&!currentQuote.within_limit?'Ajuste o total do pedido':!eligible?`Mínimo de ${MIN_QUANTITY} placas`:config.ready?'Gerar meu Pix →':'Pagamento em configuração';
 }
 function renderSummary(){
+ cart=getCart();
  currentQuote=cart.length?quote(cart,getShipping(),{enforceMinimum:false,enforceLimit:false}):null;
  document.querySelector('#checkout-summary').innerHTML=currentQuote?currentQuote.items.map(l=>`<div class="summary-line"><span>${l.quantity}× ${escapeHTML(l.name)}<br><small>${money(l.unit_cents)} por placa</small></span><b>${money(l.total_cents)}</b></div>`).join('')+summary(currentQuote):'<p>Seu carrinho está vazio.</p>';
  const limitExceeded=currentQuote&&!currentQuote.within_limit;
@@ -20,6 +21,14 @@ function renderSummary(){
 }
 renderSummary();
 const options=document.querySelector('#shipping-options');options.innerHTML=shippingOptions(getShipping());options.addEventListener('change',e=>{if(e.target.name==='shipping_method'){saveShipping(e.target.value);renderSummary();}});
+function syncSelection(){
+ if(busy||['sent','unknown','complete'].includes(attempt?.state))return;
+ options.innerHTML=shippingOptions(getShipping());renderSummary();
+ const tooSmall=!currentQuote||currentQuote.quantity<MIN_QUANTITY;
+ form.hidden=tooSmall;result.hidden=!tooSmall;
+ if(tooSmall)result.innerHTML=`<h2>Seu lote precisa de ${MIN_QUANTITY} placas.</h2><p>Adicione mais modelos antes de finalizar.</p><a class="button" href="/carrinho.html">Ajustar meu carrinho</a>`;
+}
+window.addEventListener('storage',event=>{if(event.key===CART_KEY||event.key===SHIPPING_KEY||event.key===null)syncSelection();});
 document.querySelector('#zipcode').value=sessionStorage.getItem('delivery_zip')||'';
 shopConfig().then(value=>{config=value;updatePayButton();});
 export async function criarCheckoutMangofy(data,key){const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:JSON.stringify(data)});const response=await r.json();if(!r.ok)throw Error(response.error||'Não foi possível iniciar o pagamento.');return response;}
@@ -46,14 +55,18 @@ async function submitPix(){
  // creating POST, even if the connection drops before its response arrives.
  let latest;try{latest=JSON.parse(localStorage.getItem(ATTEMPT_KEY)||'null');}catch{}
  if(['sent','unknown','complete'].includes(latest?.state)){attempt=latest;latest.response?showPayment(latest.response):showUnknown();return;}
+ if(JSON.stringify(getCart())!==JSON.stringify(cart)||getShipping()!==currentQuote?.shipping_method){
+  syncSelection();error.textContent='Seu pedido foi atualizado. Confira o novo total antes de gerar o Pix.';error.hidden=false;return;
+ }
  const fields=new FormData(form),address={};for(const k of ['zipcode','state','street','number','complement','neighborhood','city'])address[k]=fields.get(k);
  const data={items:getCart(),shipping_method:getShipping(),customer:{name:fields.get('name'),email:fields.get('email'),phone:fields.get('phone'),document:fields.get('document'),address},payment_method:'pix'};
- busy=true;button.disabled=true;button.textContent='Preparando seu Pix…';let sent=false;
+ busy=true;button.disabled=true;button.textContent='Preparando seu Pix…';form.querySelectorAll('fieldset').forEach(el=>el.disabled=true);let sent=false;
  try{
-  quote(data.items,data.shipping_method);
+  const reviewed=quote(data.items,data.shipping_method);
   const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(data))),fingerprint=Array.from(new Uint8Array(hash),n=>n.toString(16).padStart(2,'0')).join('');
   const key=latest?.fingerprint===fingerprint?latest.key:crypto.randomUUID();
   const prepared=await criarCheckoutMangofy({...data,action:'prepare'},key);
+  if(prepared.total_cents!==reviewed.total_cents||prepared.shipping_cents!==reviewed.shipping_cents)throw Error('Os preços foram atualizados. Recarregue a página e confira o pedido antes de gerar o Pix.');
   attempt={key,fingerprint,order_id:prepared.order_id,state:'sent'};keepAttempt();sent=true;button.textContent='Gerando seu Pix…';
   const response=await criarCheckoutMangofy({...data,action:'create',checkout_token:prepared.checkout_token},key);
   attempt.state=response.status==='verification_required'?'unknown':'complete';attempt.response=response;keepAttempt();
@@ -61,7 +74,7 @@ async function submitPix(){
  }catch(e){
   if(sent){attempt.state='unknown';keepAttempt();showUnknown();}
   else{error.textContent=e.message;error.hidden=false;}
- }finally{busy=false;updatePayButton();}
+ }finally{busy=false;form.querySelectorAll('fieldset').forEach(el=>el.disabled=false);updatePayButton();}
  }
 form.addEventListener('submit',event=>{
  event.preventDefault();

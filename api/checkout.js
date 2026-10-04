@@ -15,7 +15,7 @@ export default async function handler(req,res){
   if(typeof key!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(key))throw new HttpError(400,'Reabra o checkout para continuar.');
   const id=`TS-${key.toLowerCase()}`,fingerprint=fingerprintFor({q,customer,method:'pix'});
   const claims={id,total_cents:q.total_cents,shipping_cents:q.shipping_cents};
-  if(body.action==='prepare')return res.status(200).json({order_id:id,checkout_token:signToken('prepare',{...claims,fingerprint},1200)});
+  if(body.action==='prepare')return res.status(200).json({order_id:id,total_cents:q.total_cents,shipping_cents:q.shipping_cents,checkout_token:signToken('prepare',{...claims,fingerprint},1200)});
   if(body.action!=='create')throw new HttpError(400,'Etapa de pagamento inválida.');
   const ticket=readToken(body.checkout_token,'prepare');
   if(ticket.id!==id||ticket.fingerprint!==fingerprint||ticket.total_cents!==q.total_cents||ticket.shipping_cents!==q.shipping_cents)throw new HttpError(409,'O pedido mudou. Confira o carrinho antes de pagar.');

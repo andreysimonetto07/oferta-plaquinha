@@ -1,1 +1,1 @@
-{"name":"tapstar","version":"1.0.0","private":true,"type":"module","engines":{"node":"24.x"},"scripts":{"dev":"node scripts/dev.mjs","build":"node scripts/build.mjs","test":"node --test tests/*.test.mjs"}}
+{"name":"tapstar","version":"1.0.0","private":true,"type":"module","engines":{"node":"24.x"},"scripts":{"dev":"node scripts/dev.mjs","build":"node scripts/build.mjs","test":"node --test tests/*.test.mjs"},"devDependencies":{"jsdom":"26.1.0","qrcode":"1.5.4"}}
