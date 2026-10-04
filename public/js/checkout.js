@@ -1,6 +1,7 @@
 import {quote,money,MIN_QUANTITY,MAX_TOTAL_CENTS} from './catalog.js';
 import {getCart,saveCart,getShipping,saveShipping,escapeHTML,shopConfig,toast,CART_KEY,SHIPPING_KEY} from './common.js';
 import {summary,shippingOptions} from './cart.js';
+import {appendPaymentDiagnostic} from './payment-diagnostics.js';
 const form=document.querySelector('#checkout-form'),error=document.querySelector('#checkout-error'),button=document.querySelector('#pay-button'),result=document.querySelector('#payment-result');
 const ATTEMPT_KEY='tapstar_pix_attempt_v1';
 let attempt;try{attempt=JSON.parse(localStorage.getItem(ATTEMPT_KEY)||'null');}catch{}
@@ -33,7 +34,7 @@ document.querySelector('#zipcode').value=sessionStorage.getItem('delivery_zip')|
 shopConfig().then(value=>{config=value;updatePayButton();});
 export async function criarCheckoutMangofy(data,key){const r=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key},body:JSON.stringify(data)});const response=await r.json();if(!r.ok)throw Error(response.error||'Não foi possível iniciar o pagamento.');return response;}
 function keepAttempt(){localStorage.setItem(ATTEMPT_KEY,JSON.stringify(attempt));}
-function showUnknown(){form.hidden=true;result.hidden=false;result.innerHTML='<h2>Vamos conferir seu Pix.</h2><p>Não gere outra cobrança. Houve uma interrupção e o resultado precisa ser conferido na Mangofy pelo atendimento.</p>';const p=document.createElement('p');p.className='small-note';p.textContent=`Referência: ${attempt?.order_id||'consulte o atendimento'}`;result.append(p);if(attempt?.response?.access_token){const a=document.createElement('a');a.className='button secondary';a.href=`/obrigado.html?pedido=${encodeURIComponent(attempt.order_id)}`;a.textContent='Verificar pagamento';result.append(a);}}
+function showUnknown(){form.hidden=true;result.hidden=false;result.innerHTML='<h2>Vamos conferir seu Pix.</h2><p>O resultado desta tentativa ainda não foi confirmado. Consulte o atendimento antes de gerar outra cobrança.</p>';const p=document.createElement('p');p.className='small-note';p.textContent=`Referência: ${attempt?.order_id||'consulte o atendimento'}`;result.append(p);appendPaymentDiagnostic(result,attempt?.response?.failure);if(attempt?.response?.access_token){const a=document.createElement('a');a.className='button secondary';a.href=`/obrigado.html?pedido=${encodeURIComponent(attempt.order_id)}`;a.textContent='Consultar ou recuperar este Pix';result.append(a);}}
 function showPayment(data){
  form.hidden=true;result.hidden=false;
  if(data.status==='approved'){saveCart([]);localStorage.removeItem(ATTEMPT_KEY);location.href=`/obrigado.html?pedido=${encodeURIComponent(data.order_id)}`;return;}

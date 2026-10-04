@@ -59,3 +59,13 @@ Para validar a integração externa, gerar uma cobrança usando dados de comprad
 O CSS contém regras responsivas, mas um celular real não foi testado. A tentativa de abrir o servidor local no navegador remoto foi bloqueada por `ERR_BLOCKED_BY_CLIENT`; os testes do cliente foram executados em DOM isolado e os testes visuais foram feitos no site publicado em desktop. A consulta aos logs de runtime pela conexão Vercel retornou 403; o resultado da API foi verificado diretamente por HTTP.
 
 O lote de 6 placas usado no teste entre abas foi removido. Depois foi preparado, no navegador remoto, um novo lote mínimo de 5 placas comuns, frete grátis e total R$ 49,95, para o usuário preencher os dados válidos e concluir a validação real do Pix. Nenhuma cobrança desse lote foi criada. Nenhuma chave real aparece neste relatório ou nas alterações do repositório.
+
+## Correção após a tentativa real mostrada pelo responsável
+
+O print do responsável mostra resultado incerto no checkout, total R$ 69,85 (5 placas mistas, incluindo uma em L, com frete Full). Esse print não confirma criação ou pagamento. O código anterior descartava a causa de toda exceção da Mangofy e, inclusive quando recebido, descartava o código da cobrança em falhas de conciliação.
+
+A correção adiciona logs e diagnósticos permitidos, preserva referência correspondente devolvida pela Mangofy e permite recuperar cobrança existente somente por GET. Recibos antigos podem usar o código do painel, com conferência de referência, total, método e frete. Não há POST de repetição, banco de pedidos ou exposição de dados pessoais/chaves.
+
+Verificação local: **33 testes passaram**, incluindo autorização HTTP 401, bloqueio HTTP 403 em HTML, validação HTTP 422, serviço HTTP 503, resposta inválida, timeout, falha de conexão, ausência do Pix, valores divergentes, proteção contra vazamento, recibo antigo, cobrança de outro pedido, recuperação do QR e persistência após recarregar. Todas as respostas do provedor nesses testes são simuladas.
+
+A API de logs da Vercel respondeu HTTP 403: a conexão não tem permissão para essa consulta. O diagnóstico antigo não foi registrado pelo código anterior e não pode ser reconstruído deste print. A causa real na Mangofy e a existência da cobrança seguem sem confirmação. Não orientar apagar todos os dados do navegador ou emitir novo Pix antes de conferir o painel.

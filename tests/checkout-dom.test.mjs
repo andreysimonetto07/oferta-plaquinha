@@ -24,15 +24,19 @@ globalThis.fetch=async(url,options={})=>{
   if(options.method==='POST'){
    providerCreates++;
    if(scenario==='timeout')throw new Error('TEST_ONLY_TIMEOUT');
+   if(scenario==='unauthorized')return Response.json({message:'TEST_ONLY_PRIVATE_KEY_AND_CUSTOMER'},{status:401});
    const body=JSON.parse(options.body);
    assert.equal(options.headers.Authorization,'TEST_ONLY_KEY');
    assert.equal(options.headers['Store-Code'],'TEST_ONLY_STORE');
    const payment={external_code:body.external_code,payment_code:'TEST-'+randomUUID(),payment_method:'pix',payment_status:'pending',payment_amount:body.payment_amount,shipping_amount:body.shipping_amount,pix:{pix_qrcode_text:pixText,pix_qrcode_image:pixImage,pix_expires_at:'2099-01-01 23:59:59'}};
    payments.set(payment.payment_code,payment);
+   if(scenario==='lost-response')throw new DOMException('TEST_ONLY_TIMEOUT_AFTER_CREATION','TimeoutError');
+   if(scenario==='missing-pix'){delete payment.pix;return Response.json(payment);}
    return Response.json(payment);
   }
   statusCalls++;
   const payment=payments.get(target.split('/').pop());
+  if(payment&&scenario==='missing-pix')payment.pix={pix_qrcode_text:pixText,pix_qrcode_image:pixImage};
   return Response.json(payment||{message:'TEST ONLY not found'},{status:payment?200:404});
  }
  const response={code:200,setHeader(){},status(n){this.code=n;return this;},json(value){this.data=value;return this;}};
@@ -44,7 +48,8 @@ globalThis.fetch=async(url,options={})=>{
   await checkoutApi(request,response);
   if(scenario==='changed-price'&&request.body.action==='prepare'&&response.code===200)response.data.total_cents+=100;
  }else if(target.startsWith('/api/status/')){
-  request.query.pedido_id=decodeURIComponent(target.split('/').pop());
+  const parsed=new URL(target,base);
+  request.query={...Object.fromEntries(parsed.searchParams),pedido_id:decodeURIComponent(parsed.pathname.split('/').pop())};
   await statusApi(request,response);
  }else throw new Error('Unexpected test URL: '+target);
  return Response.json(response.data,{status:response.code});
@@ -178,4 +183,41 @@ test('an updated server price requires reload and does not create a charge',asyn
  assert.equal(providerCreates,0);assert.equal(localStorage.getItem('tapstar_pix_attempt_v1'),null);
  await until(()=>!document.querySelector('#pay-button').disabled);
  assert.ok([...document.querySelectorAll('fieldset')].every(el=>!el.disabled));
+});
+
+test('authorization diagnostics survive reload without another creating request or private messages',async()=>{
+ await setup('unauthorized');validForm();submit();
+ await until(()=>document.querySelector('#payment-result').textContent.includes('AUTHORIZATION'));
+ assert.match(document.querySelector('#payment-result').textContent,/HTTP 401/);
+ assert.equal(document.querySelector('#payment-result').textContent.includes('TEST_ONLY_PRIVATE_KEY_AND_CUSTOMER'),false);
+ assert.equal(providerCreates,1);
+ await page('checkout.html',storageSnapshot());
+ assert.match(document.querySelector('#payment-result').textContent,/AUTHORIZATION/);
+ assert.equal(providerCreates,1);
+});
+
+test('a lost response is recovered by the supplied existing payment code and restores the same QR',async()=>{
+ await setup('lost-response');validForm();submit();
+ await until(()=>document.querySelector('#payment-result').textContent.includes('TIMEOUT'));
+ const attempt=JSON.parse(localStorage.getItem('tapstar_pix_attempt_v1'));
+ await page('obrigado.html',storageSnapshot(),'?pedido='+encodeURIComponent(attempt.order_id));
+ await until(()=>!document.querySelector('#recover-payment').hidden);
+ document.querySelector('#provider-payment-code').value=[...payments.keys()][0];
+ document.querySelector('#recover-payment-form').requestSubmit();
+ await until(()=>!document.querySelector('#open-pix').hidden);
+ assert.equal(providerCreates,1);assert.equal(statusCalls,1);
+ assert.equal(JSON.parse(localStorage.getItem('tapstar_pix_attempt_v1')).state,'complete');
+ await page('checkout.html',storageSnapshot());await generated();
+ assert.equal(document.querySelector('textarea').value,pixText);assert.equal(providerCreates,1);
+});
+
+test('a missing QR keeps its provider code and read-only status retrieval restores the Pix',async()=>{
+ await setup('missing-pix');validForm();submit();
+ await until(()=>document.querySelector('#payment-result').textContent.includes('MISSING_PIX'));
+ const attempt=JSON.parse(localStorage.getItem('tapstar_pix_attempt_v1'));
+ await page('obrigado.html',storageSnapshot(),'?pedido='+encodeURIComponent(attempt.order_id));
+ await until(()=>!document.querySelector('#open-pix').hidden);
+ assert.equal(providerCreates,1);assert.equal(statusCalls,1);
+ await page('checkout.html',storageSnapshot());await generated();
+ assert.equal(providerCreates,1);assert.equal(document.querySelector('textarea').value,pixText);
 });

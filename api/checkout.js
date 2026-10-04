@@ -3,7 +3,7 @@ import {HttpError,validateCustomer} from '../lib/validation.js';
 import {readiness} from '../lib/config.js';
 import {rateLimit,oncePerInstance} from '../lib/session.js';
 import {assertOrigin,begin,bodyOf,fail,signToken,readToken,fingerprintFor,ipKey} from '../lib/security.js';
-import {gateway,payloadFor,verifyPayment,publicPayment,paymentPath} from '../lib/mangofy.js';
+import {gateway,payloadFor,verifyPayment,publicPayment,paymentPath,paymentReference,paymentFailure,logPayment} from '../lib/mangofy.js';
 export default async function handler(req,res){
  if(!begin(req,res,'POST'))return;
  try{
@@ -23,12 +23,18 @@ export default async function handler(req,res){
    const order={id,customer,quote:q,method:'pix',status:'creating'};
    order.postback=`${new URL(process.env.APP_URL).origin}/api/webhook?token=${encodeURIComponent(signToken('webhook',claims))}`;
    const ip=String(req.headers['x-vercel-forwarded-for']||req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim();
+   let payment;logPayment('tapstar.pix.create.started',id);
    try{
-    const payment=await gateway(paymentPath('pix'),payloadFor(order,ip));verifyPayment(order,payment);
+    payment=await gateway(paymentPath('pix'),payloadFor(order,ip));verifyPayment(order,payment);
+    if(payment.payment_status!=='approved'&&(typeof payment.pix?.pix_qrcode_text!=='string'||!payment.pix.pix_qrcode_text.trim()))throw {kind:'MISSING_PIX'};
+    logPayment('tapstar.pix.create.completed',id,{has_payment_code:true,has_pix:!!payment.pix?.pix_qrcode_text});
     return {code:201,data:{...publicPayment(order,payment),access_token:signToken('receipt',{...claims,payment_code:payment.payment_code})}};
-   }catch{
-    // A timeout may occur after the provider has created a charge. Do not resend.
-    return {code:202,data:{order_id:id,status:'verification_required',total_cents:q.total_cents,access_token:signToken('receipt',claims),message:'Não gere outro Pix. O resultado desta tentativa precisa ser conferido na Mangofy.'}};
+   }catch(error){
+    // A timeout can follow a created charge. Diagnostics do not authorize retry.
+    // Preserve a matching provider reference even if QR or amounts need review.
+    const failure=paymentFailure(error),payment_code=paymentReference(order,payment);
+    logPayment('tapstar.pix.create.failed',id,{...failure,has_payment_code:!!payment_code});
+    return {code:202,data:{order_id:id,status:'verification_required',total_cents:q.total_cents,failure,access_token:signToken('receipt',{...claims,failure,...(payment_code?{payment_code}:{})}),message:'Não gere outro Pix. O resultado desta tentativa precisa ser conferido na Mangofy.'}};
    }
   });
   return res.status(result.code).json(result.data);

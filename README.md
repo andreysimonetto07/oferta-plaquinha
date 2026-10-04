@@ -39,9 +39,19 @@ O frontend **não repete o POST de criação** após perda da conexão, erro ou 
 
 Pagamentos pendentes podem ser reabertos no mesmo navegador. Aprovação ou status terminal confirmado limpa somente a tentativa correspondente. Não limpar manualmente os dados do navegador durante uma cobrança pendente. A confirmação nunca depende apenas de parâmetros da URL.
 
+### Diagnóstico e recuperação de um Pix existente
+
+A disponibilidade de `/api/config` comprova que as variáveis obrigatórias existem; ela **não autentica as credenciais na Mangofy**. Falhas de autorização, acesso, validação, timeout, resposta inválida, ausência do Pix e divergência de valores recebem diagnósticos separados. O retorno `verification_required` continua bloqueando uma nova criação, pois o provedor não documenta idempotência nem uma garantia geral de que uma resposta de erro não criou cobrança.
+
+Na Vercel, abra **Logs**, filtre `/api/checkout` e procure `tapstar.pix.create.failed` junto da referência `TS-...`. Os registros contêm somente referência, categoria, HTTP/forma de resposta, nomes de campos previamente permitidos e indicação de referência retornada. Chaves, cabeçalhos, corpos do provedor, dados pessoais e QR Pix não são registrados. O navegador mostra o código em **Detalhes para o atendimento**. Recibos antigos, emitidos antes desta correção, não possuem diagnóstico retrospectivo.
+
+Se a Mangofy retornou um `payment_code` associado ao pedido, ele é preservado mesmo quando o QR não voltou ou os valores divergiram. A consulta posterior faz somente GET e mantém a conferência dos valores. Para recibos antigos sem código, localizar manualmente a cobrança no painel Mangofy pela referência e valor; o **código da cobrança** pode ser informado em **Consultar ou recuperar este Pix → Recebeu o código da cobrança pelo atendimento?**. Não usar API Key ou Store Code nesse campo.
+
+`GET /api/status/{pedido_id}?payment_code={codigo_existente}` exige o recibo Bearer já assinado. Apenas expõe o Pix e reemite recibo depois de conferir referência, método, código, total e frete. Não aceita códigos de outro pedido e não faz POST ao provedor. Após recuperar, **Abrir meu Pix** reabre QR e copia e cola no checkout. Se nenhum pagamento existir no painel, o responsável deve confirmar esse resultado antes de liberar uma nova tentativa; o site não apaga automaticamente um resultado incerto.
+
 ## Configuração
 
-Executar `npm ci` antes dos comandos abaixo. `jsdom` e `qrcode` são dependências exclusivamente dos testes; não são incluídas no site ou nas funções de pagamento. A suíte contém 27 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
+Executar `npm ci` antes dos comandos abaixo. `jsdom` e `qrcode` são dependências exclusivamente dos testes; não são incluídas no site ou nas funções de pagamento. A suíte contém 33 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
 
 O checkout acompanha alterações de quantidade e entrega feitas em outra aba. Se uma alteração ainda não apareceu na tela no momento do clique, ele pede que o cliente confira o novo total antes de gerar o Pix. Durante a requisição, os campos ficam bloqueados para manter os dados revisados.
 
