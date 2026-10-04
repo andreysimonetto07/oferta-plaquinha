@@ -25,7 +25,7 @@ Não há Redis, banco de pedidos, administração ou histórico local de pedidos
 2. `action: create` + ticket: confere o hash, recalcula os valores e faz um único POST Pix nessa execução.
 3. A resposta contém recibo assinado com código Mangofy, referência e valores. O navegador guarda recibo e QR; não grava nome, documento, telefone ou endereço nesse armazenamento.
 4. `GET /api/status/{pedido_id}` com Bearer recibo: valida assinatura, consulta a Mangofy e confere referência, método, código, total e frete antes de informar aprovação.
-5. `POST /api/webhook?token=...`: ticket assinado por transação; consulta a Mangofy, nunca confia na aprovação do corpo. Apenas confirma recebimento, sem persistir estado ou iniciar entrega.
+5. `POST /api/webhook`: URL fixa para notificações Pix do painel; aceita também `?token=...` dos callbacks assinados por transação. Consulta a Mangofy e confere referência, código, método, total e frete antes de confirmar recebimento. Nunca usa a aprovação do corpo para marcar pagamento, não persiste estado nem inicia entrega.
 
 Tickets de preparação: 20 minutos. Recibos e callbacks: 7 dias. Tokens não ficam em parâmetros públicos da página de acompanhamento. `ORDER_SECRET` permanece somente no servidor.
 
@@ -51,7 +51,7 @@ Se a Mangofy retornou um `payment_code` associado ao pedido, ele é preservado m
 
 ## Configuração
 
-Executar `npm ci` antes dos comandos abaixo. `jsdom` e `jsqr` verificam a interface e decodificam os QR de teste. `qrcode` 1.5.4 e `esbuild` geram o encoder local do navegador; as funções de pagamento não dependem dessas bibliotecas. A suíte contém 37 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
+Executar `npm ci` antes dos comandos abaixo. `jsdom` e `jsqr` verificam a interface e decodificam os QR de teste. `qrcode` 1.5.4 e `esbuild` geram o encoder local do navegador; as funções de pagamento não dependem dessas bibliotecas. A suíte contém 46 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
 
 O checkout acompanha alterações de quantidade e entrega feitas em outra aba. Se uma alteração ainda não apareceu na tela no momento do clique, ele pede que o cliente confira o novo total antes de gerar o Pix. Durante a requisição, os campos ficam bloqueados para manter os dados revisados.
 
@@ -68,6 +68,27 @@ Node.js 24, sem dependências de aplicação. `npm run dev`, `npm test`, `npm ru
 | `SHOP_READY` | `true` após configurar e testar Pix |
 
 Não há variáveis de banco. Não commitir chaves reais. Gerar segredo com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. `/api/config` divulga somente disponibilidade, Pix, armazenamento no provedor e identificação pública.
+
+### Webhook pronto para cadastrar no painel
+
+URL fixa de Produção: **`https://tap-star-two.vercel.app/api/webhook`**.
+
+| Campo, se disponível no painel | Valor |
+| --- | --- |
+| Nome | TapStar Pix |
+| URL de webhook / postback | `https://tap-star-two.vercel.app/api/webhook` |
+| Método | `POST` |
+| Formato | JSON (`application/json`) |
+| Método de pagamento / eventos | Pix e alterações de status do pagamento, incluindo aprovado |
+| Ativo | Sim |
+
+Não é necessário acrescentar variável na Vercel, API Key no endereço ou cabeçalho de autenticação no webhook. As credenciais já configuradas são usadas somente pelo servidor para consultar o pagamento. `GET /api/webhook` retorna `ready`, o método esperado e Pix, sem consultar cobrança nem expor chaves. `ready: true` indica configuração local, não teste de credenciais ou pagamento recebido.
+
+O POST deve conter os campos documentados `payment_code`, `external_code`, `payment_amount` e `shipping_amount` (centavos inteiros); `payment_method`, quando presente, deve ser `pix`. Somente referências no formato `TS-<UUID>` são aceitas. A rota consulta `GET /api/v1/payment/{payment_code}` com Authorization e Store-Code privados e confere os valores e a referência. O status registrado vem dessa consulta, nunca do `payment_status` postado. Notificações inválidas ou cuja consulta falha não recebem confirmação de sucesso. Os logs usam apenas referência, status verificado ou categoria de falha; não incluem corpo, cliente, chave ou QR.
+
+A documentação oficial define o callback pelo campo `postback_url` enviado na criação de cada cobrança. O checkout já o envia automaticamente com a assinatura da transação. Esses links e as cobranças pendentes anteriores continuam funcionando; assinatura inválida ou expirada não é convertida em callback sem assinatura. A URL fixa também aceita os eventos do painel, sem exigir essa assinatura na configuração manual. Se o painel e o postback emitirem o mesmo evento, ambas as notificações podem ser verificadas sem criar cobrança ou executar expedição.
+
+O site continua sem banco próprio de pedidos. O webhook apenas verifica e confirma recebimento (`200 {"received":true}`); a página de acompanhamento consulta o pagamento de forma independente com seu recibo assinado. Não há envio automático de mercadoria ou mensagem. Para conferir recebimento real, pagar um Pix legítimo já emitido e procurar `tapstar.webhook.verified` nos logs da Vercel. Testes locais utilizam notificações e respostas de API simuladas, sem criar ou pagar cobrança real.
 
 ### Mensagem de loja em configuração
 
