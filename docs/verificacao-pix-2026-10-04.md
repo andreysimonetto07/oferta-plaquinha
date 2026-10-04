@@ -77,3 +77,11 @@ O novo print fornecido pelo responsável mostra a tela “Pix gerado”, com có
 O checkout agora gera o QR localmente a partir do mesmo texto já recebido. Não houve geração de cobrança real adicional para testar esta alteração. Interface alterada para azul, todas as menções ao gateway removidas das telas e mensagens públicas, prazo grátis padronizado para 6 dias úteis.
 
 **37 testes passaram**. O leitor independente `jsqr` decodificou o QR gerado e recuperou o texto exato, inclusive em código longo; o DOM confirmou imagem sem `pix_qrcode_image`, persistência ao recarregar, uma única criação simulada e nenhuma consulta adicional ao provedor para obter a imagem.
+
+Publicação confirmada em Produção no commit `98b43926f7869b2598e27d682344d8c7202f458d`, release `40d5adfab818e9bb`, com deploy `READY`. As cinco páginas públicas, configuração e arquivos do checkout/QR responderam HTTP 200. A configuração pública retornou `ready: true`. A inspeção dos textos publicados não encontrou o nome do gateway nem prazo de seis dias sem “úteis”.
+
+O navegador confirmou o tema azul e os dois prazos na página de preços. Captura da versão publicada, sem dados pessoais ou cobrança real:
+
+![TapStar: tema azul e frete grátis em 6 dias úteis](tapstar-azul-1791148785908.jpg)
+
+Uma cobrança já aberta com código copia e cola pode exibir o QR após recarregar o checkout; esta correção não exige gerar outro Pix.
