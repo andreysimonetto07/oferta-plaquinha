@@ -133,3 +133,5 @@ A imagem do QR não depende de `pix_qrcode_image`. O checkout gera um SVG no pr�
 ### Google Analytics
 
 A tag GA4 `G-P4BLNRT5W9` está instalada uma vez no head de todas as seis páginas. A CSP permite o loader do Google e os destinos de coleta do Analytics; o bootstrap inline usa um hash SHA-256 específico, sem liberar scripts inline arbitrários. Se o código inline mudar, atualizar seu hash em `vercel.json`. A instalação básica envia visualizações de página; eventos de compra não são marcados pela simples abertura da página de acompanhamento ou geração de Pix.
+
+A CSP também permite `https://stats.g.doubleclick.net` em `connect-src`: a configuração atual da tag faz uma chamada complementar a esse destino, identificada no Tag Assistant. Nenhuma chave de pagamento é enviada à tag.
