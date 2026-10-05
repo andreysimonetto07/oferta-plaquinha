@@ -129,3 +129,7 @@ A interface usa azul, sem citar o gateway nos textos das páginas, diagnóstico,
 A imagem do QR não depende de `pix_qrcode_image`. O checkout gera um SVG no próprio navegador a partir do **texto exato** de `pix_qrcode_text`, preservando a margem de quatro módulos e contraste preto/branco. Não consulta serviço externo de QR e não cria outra cobrança. Um Pix já salvo sem imagem passa a exibir o QR ao recarregar; recibo, carrinho e copia e cola permanecem disponíveis. Datas ISO com fuso explícito aparecem em português, no horário de Brasília.
 
 `npm run pretest`, `prebuild` e `predev` compilam `scripts/pix-qr-entry.mjs` em `public/js/vendor/pix-qr.js`. Esse bundle e suas licenças MIT ficam versionados. A versão do storefront inclui o encoder e seus imports no hash. O teste com `jsqr` decodifica a imagem gerada e confere igualdade exata do texto; o teste da interface comprova o QR sem imagem do provedor e a reabertura sem nova chamada de criação.
+
+### Google Analytics
+
+A tag GA4 `G-P4BLNRT5W9` está instalada uma vez no head de todas as seis páginas. A CSP permite o loader do Google e os destinos de coleta do Analytics; o bootstrap inline usa um hash SHA-256 específico, sem liberar scripts inline arbitrários. Se o código inline mudar, atualizar seu hash em `vercel.json`. A instalação básica envia visualizações de página; eventos de compra não são marcados pela simples abertura da página de acompanhamento ou geração de Pix.
