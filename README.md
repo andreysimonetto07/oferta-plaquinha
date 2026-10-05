@@ -90,6 +90,16 @@ A documentação oficial define o callback pelo campo `postback_url` enviado na 
 
 O site continua sem banco próprio de pedidos. O webhook apenas verifica e confirma recebimento (`200 {"received":true}`); a página de acompanhamento consulta o pagamento de forma independente com seu recibo assinado. Não há envio automático de mercadoria ou mensagem. Para conferir recebimento real, pagar um Pix legítimo já emitido e procurar `tapstar.webhook.verified` nos logs da Vercel. Testes locais utilizam notificações e respostas de API simuladas, sem criar ou pagar cobrança real.
 
+### Domínio próprio e erro de origem no Pix
+
+O endereço principal é `https://www.tapstar.site`; `https://tapstar.site` redireciona para ele. Na Vercel, `APP_URL` em **Production** deve ser `https://www.tapstar.site`, sem barra final. Depois de mudar essa variável, publicar uma nova versão: deployments existentes mantêm a configuração anterior.
+
+O checkout exige que o cabeçalho `Origin` seja igual à origem de `APP_URL`. Se o navegador usa o domínio novo e a publicação ainda contém o endereço antigo, `/api/checkout` retorna `403 Origem inválida` antes de gerar qualquer cobrança. Corrigir a variável e publicar; não remover a validação nem liberar qualquer domínio.
+
+O novo endereço fixo de webhook é `https://www.tapstar.site/api/webhook`. Manter o alias antigo da Vercel disponível para as cobranças que já receberam callbacks naquele endereço. As credenciais e `ORDER_SECRET` não precisam mudar na troca de domínio.
+
+Verificação após a publicação: preparação no domínio principal retornou HTTP 200 com frete grátis (4.995 centavos) e Full (6.685 centavos, dos quais 1.690 de frete), para cinco placas comuns. Origem externa, pedido abaixo de cinco placas, total acima de R$ 900 e ticket adulterado permaneceram bloqueados. Os 46 testes locais passaram, incluindo QR, cópia e cola e confirmação simulada. Essa verificação não criou ou pagou uma cobrança real.
+
 ### Mensagem de loja em configuração
 
 `/api/config` precisa retornar `ready: true` para liberar o botão Pix. Na configuração atual, `SELLER_DETAILS` também é obrigatório: preencher somente as chaves da Mangofy, URL, segredo e `SHOP_READY` deixa o pagamento desativado. Usar a identificação comercial real da loja; o valor aparece publicamente no site. Conferir se todas as variáveis estão em **Production** e fazer uma nova publicação após salvá-las, pois uma publicação existente conserva suas variáveis anteriores. Não remover a validação de credenciais para ocultar a mensagem.
