@@ -94,7 +94,7 @@ O site continua sem banco próprio de pedidos. O webhook apenas verifica e confi
 
 O endereço principal é `https://www.tapstar.site`; `https://tapstar.site` redireciona para ele. Na Vercel, `APP_URL` em **Production** deve ser `https://www.tapstar.site`, sem barra final. Depois de mudar essa variável, publicar uma nova versão: deployments existentes mantêm a configuração anterior.
 
-O checkout exige que o cabeçalho `Origin` seja igual à origem de `APP_URL`. Se o navegador usa o domínio novo e a publicação ainda contém o endereço antigo, `/api/checkout` retorna `403 Origem inválida` antes de gerar qualquer cobrança. Corrigir a variável e publicar; não remover a validação nem liberar qualquer domínio.
+O checkout exige que o cabeçalho `Origin` corresponda à origem de `APP_URL` ou a um dos dois endereços oficiais verificados do projeto: `https://www.tapstar.site` e `https://tap-star-two.vercel.app`. Não aceita subdomínios parecidos, outras lojas Vercel, portas alternativas ou origens inferidas de Host/forwarded headers. Se o navegador usa o domínio novo e a publicação ainda contém o endereço antigo, `/api/checkout` retorna `403 Origem inválida` antes de gerar qualquer cobrança. Corrigir a configuração e publicar; não remover a validação nem liberar qualquer domínio.
 
 O novo endereço fixo de webhook é `https://www.tapstar.site/api/webhook`. Manter o alias antigo da Vercel disponível para as cobranças que já receberam callbacks naquele endereço. As credenciais e `ORDER_SECRET` não precisam mudar na troca de domínio.
 
@@ -135,3 +135,11 @@ A imagem do QR não depende de `pix_qrcode_image`. O checkout gera um SVG no pr�
 A tag GA4 `G-P4BLNRT5W9` está instalada uma vez no head de todas as seis páginas. A CSP permite o loader do Google e os destinos de coleta do Analytics; o bootstrap inline usa um hash SHA-256 específico, sem liberar scripts inline arbitrários. Se o código inline mudar, atualizar seu hash em `vercel.json`. A instalação básica envia visualizações de página; eventos de compra não são marcados pela simples abertura da página de acompanhamento ou geração de Pix.
 
 A CSP também permite `https://stats.g.doubleclick.net` em `connect-src`: a configuração atual da tag faz uma chamada complementar a esse destino, identificada no Tag Assistant. Nenhuma chave de pagamento é enviada à tag.
+
+### Recuperação do endereço operacional e pixel UTMify (06/10/2026)
+
+Enquanto o domínio próprio não resolve no DNS, `APP_URL` em Production usa `https://tap-star-two.vercel.app`, também para os novos callbacks assinados. O domínio próprio continua cadastrado na Vercel; sua recuperação depende do DNS/registro na Namecheap. Recibos, assinaturas e cobranças existentes não são alterados.
+
+O script fornecido foi decodificado sem executá-lo: carrega `https://cdn.utmify.com.br/scripts/pixel/pixel.js` e define o identificador público `6997c4440a47f2ab82f43662`. A implementação equivalente e legível está em `public/js/utmify.js`, carregada uma vez nas seis páginas e incluída nos assets versionados. A CSP permite o loader e conexões UTMify. O número Meta informado não é instalado novamente como outro pixel, evitando duplicação da configuração gerenciada pela UTMify.
+
+A tag não exige o token privado da API de pedidos. Nenhum token UTMify é colocado no HTML, JavaScript ou repositório. Não foram acrescentados POSTs à API de vendas, eventos de compra por Pix pendente nem transmissão de dados do checkout para essa API. A atribuição de vendas pagas pela API de pedidos é uma integração distinta.
