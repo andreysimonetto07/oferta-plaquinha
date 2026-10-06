@@ -138,7 +138,7 @@ A CSP também permite `https://stats.g.doubleclick.net` em `connect-src`: a conf
 
 ### Recuperação do endereço operacional e pixel UTMify (06/10/2026)
 
-Enquanto o domínio próprio não resolve no DNS, `APP_URL` em Production usa `https://tap-star-two.vercel.app`, também para os novos callbacks assinados. O domínio próprio continua cadastrado na Vercel; sua recuperação depende do DNS/registro na Namecheap. Recibos, assinaturas e cobranças existentes não são alterados.
+O novo domínio é `tapstarnfc.online`, com redirecionamento na Vercel para `www.tapstarnfc.online`. Ambos estão explicitamente autorizados no checkout. Enquanto o DNS na Dynadot propaga, `APP_URL` em Production permanece `https://tap-star-two.vercel.app` para manter os callbacks assinados acessíveis. Após confirmar DNS e HTTPS do novo domínio, pode-se atualizar `APP_URL` para `https://www.tapstarnfc.online` e publicar novamente. Recibos, assinaturas e cobranças existentes não são alterados.
 
 O script fornecido foi decodificado sem executá-lo: carrega `https://cdn.utmify.com.br/scripts/pixel/pixel.js` e define o identificador público `6997c4440a47f2ab82f43662`. A implementação equivalente e legível está em `public/js/utmify.js`, carregada uma vez nas seis páginas e incluída nos assets versionados. A CSP permite o loader e conexões UTMify. O número Meta informado não é instalado novamente como outro pixel, evitando duplicação da configuração gerenciada pela UTMify.
 

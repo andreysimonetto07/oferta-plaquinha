@@ -16,15 +16,15 @@ test('ready config needs no database variables',()=>{enable();try{const r=respon
 test('V1 Pix uses the documented unified endpoint even with an old environment flag',()=>{process.env.MANGOFY_API_STYLE='method';try{assert.equal(paymentPath('pix'),'/api/v1/payment');assert.throws(()=>paymentPath('credit_card'));}finally{delete process.env.MANGOFY_API_STYLE;}});
 test('documentation placeholder and malformed origins cannot enable live payments',()=>{enable();try{for(const url of ['https://whitelabel-checkout.test','https://checkout.mangofy.com.br/api/v1/payment','https://key@example.com','http://checkout.mangofy.com.br']){process.env.MANGOFY_BASE_URL=url;assert.equal(readiness(),false);assert.throws(()=>gatewayBase());}process.env.MANGOFY_BASE_URL='https://checkout.mangofy.com.br';assert.equal(readiness(),true);process.env.APP_URL='https://shop.example.com?secret=value';assert.equal(readiness(),false);}finally{delete process.env.MANGOFY_BASE_URL;disable();}});
 test('invalid origin, card, minimum and altered ticket never reach provider',async()=>{enable();const original=global.fetch;let calls=0;global.fetch=async()=>{calls++;throw Error('should not call');};try{for(const req of [request({payment_method:'credit_card'}),request({items:[{id:'google-azul',variant:'Azul',quantity:4}]}),{...request(),headers:{origin:'https://evil.example.com','idempotency-key':randomUUID()}}]){const r=response();await checkout(req,r);assert.ok([400,403].includes(r.code));}const good=await prepare(request());const altered=response();await checkout({...good,body:{...good.body,shipping_method:'full'}},altered);assert.equal(altered.code,409);assert.equal(calls,0);}finally{global.fetch=original;disable();}});
-test('both official production origins prepare Pix, lookalikes and forged host headers do not',async()=>{
+test('official production origins prepare Pix, lookalikes and forged host headers do not',async()=>{
  enable();const original=global.fetch;let calls=0;global.fetch=async()=>{calls++;throw Error('should not call');};
  try{
   process.env.APP_URL='https://tap-star-two.vercel.app';
-  for(const origin of ['https://tap-star-two.vercel.app','https://www.tapstar.site']){
+  for(const origin of ['https://tap-star-two.vercel.app','https://www.tapstar.site','https://tapstarnfc.online','https://www.tapstarnfc.online']){
    const req=request({action:'prepare',items:[{id:'google-l',variant:'Azul em L',quantity:5}]});req.headers.origin=origin;
    const r=response();await checkout(req,r);assert.equal(r.code,200);assert.equal(r.data.total_cents,6495);
   }
-  for(const origin of [undefined,'null','http://tap-star-two.vercel.app','https://tap-star-two.vercel.app.evil.example','https://www.tapstar.site.evil.example','https://unrelated.vercel.app','https://tap-star-two.vercel.app:444']){
+  for(const origin of [undefined,'null','http://tap-star-two.vercel.app','https://tap-star-two.vercel.app.evil.example','https://www.tapstar.site.evil.example','https://unrelated.vercel.app','https://tap-star-two.vercel.app:444','http://tapstarnfc.online','https://www.tapstarnfc.online.evil.example','https://tapstarnfc.online:444']){
    const req=request({action:'prepare'});req.headers.origin=origin;req.headers.host='tap-star-two.vercel.app';req.headers['x-forwarded-host']='www.tapstar.site';
    const r=response();await checkout(req,r);assert.equal(r.code,403);
   }
