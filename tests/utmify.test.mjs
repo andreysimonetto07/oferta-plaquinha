@@ -48,6 +48,7 @@ test('concurrent updates deduplicate, private token stays in server headers and 
  global.fetch=async()=>{calls++;return Response.json({error:'PRIVATE_RESPONSE'}, {status:500});};
  await assert.rejects(()=>syncUtmify(p,{strict:true}));
  global.fetch=async()=>{calls++;return Response.json({ok:true});};await syncUtmify(p,{strict:true});assert.equal(calls,3);
+ p.payment_status='pending';await syncUtmify(p,{strict:true});assert.equal(calls,3);
  assert.ok(logs.every(log=>!log.includes('TEST_PRIVATE_UTM_TOKEN')&&!log.includes('PRIVATE_RESPONSE')&&!log.includes(customer.email)));
 }));
 test('Pix creation records pending, webhook sends only authenticated status, a failed paid sync retries without a charge',()=>isolated(async()=>{

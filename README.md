@@ -92,9 +92,9 @@ O site continua sem banco próprio de pedidos. O webhook apenas verifica e confi
 
 ### Domínio próprio e erro de origem no Pix
 
-O endereço principal é `https://www.tapstar.site`; `https://tapstar.site` redireciona para ele. Na Vercel, `APP_URL` em **Production** deve ser `https://www.tapstar.site`, sem barra final. Depois de mudar essa variável, publicar uma nova versão: deployments existentes mantêm a configuração anterior.
+O endereço principal é `https://www.tapstarnfc.online`; `https://tapstarnfc.online` redireciona para ele. Na Vercel, `APP_URL` em **Production** deve ser `https://www.tapstarnfc.online`, sem barra final. Depois de mudar essa variável, publicar uma nova versão: deployments existentes mantêm a configuração anterior.
 
-O checkout exige que o cabeçalho `Origin` corresponda à origem de `APP_URL` ou a um dos dois endereços oficiais verificados do projeto: `https://www.tapstar.site` e `https://tap-star-two.vercel.app`. Não aceita subdomínios parecidos, outras lojas Vercel, portas alternativas ou origens inferidas de Host/forwarded headers. Se o navegador usa o domínio novo e a publicação ainda contém o endereço antigo, `/api/checkout` retorna `403 Origem inválida` antes de gerar qualquer cobrança. Corrigir a configuração e publicar; não remover a validação nem liberar qualquer domínio.
+O checkout exige que o cabeçalho `Origin` corresponda à origem de `APP_URL` ou a um dos endereços explicitamente autorizados do projeto: `https://tapstarnfc.online`, `https://www.tapstarnfc.online`, `https://www.tapstar.site` e `https://tap-star-two.vercel.app`. Não aceita subdomínios parecidos, outras lojas Vercel, portas alternativas ou origens inferidas de Host/forwarded headers. Se o navegador usa o domínio novo e a publicação ainda contém o endereço antigo, `/api/checkout` retorna `403 Origem inválida` antes de gerar qualquer cobrança. Corrigir a configuração e publicar; não remover a validação nem liberar qualquer domínio.
 
 O novo endereço fixo de webhook é `https://www.tapstar.site/api/webhook`. Manter o alias antigo da Vercel disponível para as cobranças que já receberam callbacks naquele endereço. As credenciais e `ORDER_SECRET` não precisam mudar na troca de domínio.
 
@@ -138,7 +138,7 @@ A CSP também permite `https://stats.g.doubleclick.net` em `connect-src`: a conf
 
 ### Recuperação do endereço operacional e pixel UTMify (06/10/2026)
 
-O novo domínio é `tapstarnfc.online`, com redirecionamento na Vercel para `www.tapstarnfc.online`. Ambos estão explicitamente autorizados no checkout. Enquanto o DNS na Dynadot propaga, `APP_URL` em Production permanece `https://tap-star-two.vercel.app` para manter os callbacks assinados acessíveis. Após confirmar DNS e HTTPS do novo domínio, pode-se atualizar `APP_URL` para `https://www.tapstarnfc.online` e publicar novamente. Recibos, assinaturas e cobranças existentes não são alterados.
+O novo domínio é `tapstarnfc.online`, com redirecionamento na Vercel para `www.tapstarnfc.online`. Ambos estão explicitamente autorizados no checkout. DNS e HTTPS do novo domínio foram confirmados e `APP_URL` em Production usa `https://www.tapstarnfc.online`. O endereço `tap-star-two.vercel.app` permanece disponível para cobranças e callbacks anteriores. Recibos, assinaturas e cobranças existentes não são alterados.
 
 O script fornecido foi decodificado sem executá-lo: carrega `https://cdn.utmify.com.br/scripts/pixel/pixel.js` e define o identificador público `6997c4440a47f2ab82f43662`. A implementação equivalente e legível está em `public/js/utmify.js`, carregada uma vez nas seis páginas e incluída nos assets versionados. A CSP permite o loader e conexões UTMify. O número Meta informado não é instalado novamente como outro pixel, evitando duplicação da configuração gerenciada pela UTMify.
 
@@ -156,3 +156,5 @@ Pix gerado envia `waiting_payment`; aprovação confirmada envia `paid`; recusa,
 A falha de análise nunca oculta um Pix gerado. No webhook, falha de envio retorna 503 para permitir as tentativas de reenvio do serviço de pagamento. A página de status também tenta sincronizar. Deduplicação em memória é limitada à instância; a API de vendas recebe sempre o mesmo orderId, sem criar outra cobrança. Sem banco/fila próprios, não há garantia de entrega após esgotar os retries; consulte os logs `tapstar.utmify.sent` e `tapstar.utmify.failed` e reenvie o webhook quando necessário.
 
 O contrato de pagamento fornecido não expõe taxas. A comissão é enviada como receita bruta, com gatewayFeeInCents 0; isso não significa que o gateway não cobra taxa. Configure as taxas na ferramenta de relatórios conforme o contrato comercial. Nenhuma venda paga de teste deve entrar nos relatórios reais; testes externos devem usar isTest true.
+
+Validação em 06/10/2026: API UTMify aceitou isTest true a partir da Vercel com HTTP 200. Nenhum Pix real ou venda paga foi criado. Os 53 testes passaram, incluindo atribuição entre páginas, validação de callbacks, status, falhas e reenvio. A rota temporária autenticada de diagnóstico foi removida depois dessa verificação.
