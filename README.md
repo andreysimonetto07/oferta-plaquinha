@@ -143,3 +143,16 @@ O novo domínio é `tapstarnfc.online`, com redirecionamento na Vercel para `www
 O script fornecido foi decodificado sem executá-lo: carrega `https://cdn.utmify.com.br/scripts/pixel/pixel.js` e define o identificador público `6997c4440a47f2ab82f43662`. A implementação equivalente e legível está em `public/js/utmify.js`, carregada uma vez nas seis páginas e incluída nos assets versionados. A CSP permite o loader e conexões UTMify. O número Meta informado não é instalado novamente como outro pixel, evitando duplicação da configuração gerenciada pela UTMify.
 
 A tag não exige o token privado da API de pedidos. Nenhum token UTMify é colocado no HTML, JavaScript ou repositório. Não foram acrescentados POSTs à API de vendas, eventos de compra por Pix pendente nem transmissão de dados do checkout para essa API. A atribuição de vendas pagas pela API de pedidos é uma integração distinta.
+
+
+### UTMify — API de vendas
+
+Configurar `UTMIFY_API_TOKEN` como segredo em Production na Vercel e publicar novamente. O token é enviado somente pelo servidor para `https://api.utmify.com.br/api-credentials/orders`, no header `x-api-token`. Nunca adicionar o token ao pixel, HTML, recibos ou logs.
+
+O pixel continua nas seis páginas. `tracking.js` mantém src, sck e as cinco UTMs por 30 dias no navegador; uma nova visita com parâmetros substitui a atribuição anterior. O checkout valida e grava essa atribuição e um timestamp UTC em `extra.metadata` da cobrança. O GET autenticado do pagamento recupera os metadados sem banco de pedidos próprio.
+
+Pix gerado envia `waiting_payment`; aprovação confirmada envia `paid`; recusa, estorno e chargeback são atualizados com o mesmo `orderId`. Preparação do checkout não envia venda. Webhooks consultam o pagamento antes de enviar: um corpo alegando aprovação não autoriza uma conversão. Cobranças antigas sem timestamp da integração não são importadas automaticamente. Datas da API de vendas são UTC.
+
+A falha de análise nunca oculta um Pix gerado. No webhook, falha de envio retorna 503 para permitir as tentativas de reenvio do serviço de pagamento. A página de status também tenta sincronizar. Deduplicação em memória é limitada à instância; a API de vendas recebe sempre o mesmo orderId, sem criar outra cobrança. Sem banco/fila próprios, não há garantia de entrega após esgotar os retries; consulte os logs `tapstar.utmify.sent` e `tapstar.utmify.failed` e reenvie o webhook quando necessário.
+
+O contrato de pagamento fornecido não expõe taxas. A comissão é enviada como receita bruta, com gatewayFeeInCents 0; isso não significa que o gateway não cobra taxa. Configure as taxas na ferramenta de relatórios conforme o contrato comercial. Nenhuma venda paga de teste deve entrar nos relatórios reais; testes externos devem usar isTest true.

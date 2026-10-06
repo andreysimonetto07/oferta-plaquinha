@@ -1,3 +1,5 @@
+import {captureTracking} from './tracking.js';
+captureTracking();
 // Equivalent to the supplied UTMify tag, decoded for review. Pixel IDs are
 // public identifiers; private API tokens must never be added to this file.
 (() => {

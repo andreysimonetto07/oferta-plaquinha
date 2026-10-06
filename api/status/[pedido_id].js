@@ -2,6 +2,7 @@ import {begin,fail,readToken,signToken,ipKey} from '../../lib/security.js';
 import {HttpError} from '../../lib/validation.js';
 import {rateLimit} from '../../lib/session.js';
 import {gateway,verifyPayment,publicPayment,validPaymentCode,paymentFailure,logPayment} from '../../lib/mangofy.js';
+import {syncUtmify} from '../../lib/utmify.js';
 export default async function handler(req,res){
  if(!begin(req,res,'GET'))return;
  try{
@@ -18,6 +19,7 @@ export default async function handler(req,res){
    // Recovery only reads an existing charge. Reference, total and freight must
    // match the signed receipt before exposing any Pix or issuing a new receipt.
    const payment=await gateway(`/api/v1/payment/${encodeURIComponent(payment_code)}`);verifyPayment(order,payment);
+   await syncUtmify(payment);
    const data=publicPayment(order,payment);
    if(supplied)data.access_token=signToken('receipt',{id,total_cents:claims.total_cents,shipping_cents:claims.shipping_cents,payment_code});
    return res.status(200).json(data);

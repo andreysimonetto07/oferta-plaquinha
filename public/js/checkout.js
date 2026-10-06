@@ -3,6 +3,7 @@ import {getCart,saveCart,getShipping,saveShipping,escapeHTML,shopConfig,toast,CA
 import {summary,shippingOptions} from './cart.js';
 import {appendPaymentDiagnostic} from './payment-diagnostics.js';
 import {pixImageSource,pixExpiryText} from './pix-display.js';
+import {captureTracking} from './tracking.js';
 const form=document.querySelector('#checkout-form'),error=document.querySelector('#checkout-error'),button=document.querySelector('#pay-button'),result=document.querySelector('#payment-result');
 const ATTEMPT_KEY='tapstar_pix_attempt_v1';
 let attempt;try{attempt=JSON.parse(localStorage.getItem(ATTEMPT_KEY)||'null');}catch{}
@@ -62,7 +63,7 @@ async function submitPix(){
   syncSelection();error.textContent='Seu pedido foi atualizado. Confira o novo total antes de gerar o Pix.';error.hidden=false;return;
  }
  const fields=new FormData(form),address={};for(const k of ['zipcode','state','street','number','complement','neighborhood','city'])address[k]=fields.get(k);
- const data={items:getCart(),shipping_method:getShipping(),customer:{name:fields.get('name'),email:fields.get('email'),phone:fields.get('phone'),document:fields.get('document'),address},payment_method:'pix'};
+ const data={items:getCart(),shipping_method:getShipping(),customer:{name:fields.get('name'),email:fields.get('email'),phone:fields.get('phone'),document:fields.get('document'),address},payment_method:'pix',tracking: captureTracking()};
  busy=true;button.disabled=true;button.textContent='Preparando seu Pix…';form.querySelectorAll('fieldset').forEach(el=>el.disabled=true);let sent=false;
  try{
   const reviewed=quote(data.items,data.shipping_method);
