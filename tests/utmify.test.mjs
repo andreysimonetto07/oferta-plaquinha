@@ -86,3 +86,8 @@ test('UTMify outage never hides a generated Pix or allows changed attribution af
  const altered=response();await checkout({...req,body:{...req.body,action:'create',checkout_token:prep.data.checkout_token,tracking:{utm_source:'changed'}}},altered);assert.equal(altered.code,409);assert.equal(creates,0);
  const result=response();await checkout({...req,body:{...req.body,action:'create',checkout_token:prep.data.checkout_token}},result);assert.equal(result.code,201);assert.ok(result.data.pix.text);assert.equal(creates,1);
 }));
+test('HTTP 200 with an explicit provider rejection is retried instead of cached as delivered',()=>isolated(async()=>{
+ const p=sample();let calls=0;global.fetch=async()=>{calls++;return Response.json({OK:false,result:'REJECTED'});};
+ await assert.rejects(()=>syncUtmify(p,{strict:true}));
+ global.fetch=async()=>{calls++;return Response.json({OK:true});};await syncUtmify(p,{strict:true});assert.equal(calls,2);
+}));

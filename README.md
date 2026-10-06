@@ -157,4 +157,4 @@ A falha de análise nunca oculta um Pix gerado. No webhook, falha de envio retor
 
 O contrato de pagamento fornecido não expõe taxas. A comissão é enviada como receita bruta, com gatewayFeeInCents 0; isso não significa que o gateway não cobra taxa. Configure as taxas na ferramenta de relatórios conforme o contrato comercial. Nenhuma venda paga de teste deve entrar nos relatórios reais; testes externos devem usar isTest true.
 
-Validação em 06/10/2026: API UTMify aceitou isTest true a partir da Vercel com HTTP 200. Nenhum Pix real ou venda paga foi criado. Os 53 testes passaram, incluindo atribuição entre páginas, validação de callbacks, status, falhas e reenvio. A rota temporária autenticada de diagnóstico foi removida depois dessa verificação.
+Validação em 06/10/2026: API UTMify aceitou isTest true a partir da Vercel com HTTP 200. Nenhum Pix real ou venda paga foi criado. Os 54 testes passaram, incluindo atribuição entre páginas, validação de callbacks, status, falhas e reenvio. A rota temporária autenticada de diagnóstico foi removida depois dessa verificação.
