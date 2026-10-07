@@ -54,7 +54,7 @@ test('concurrent updates deduplicate, private token stays in server headers and 
 test('Pix creation records pending, webhook sends only authenticated status, a failed paid sync retries without a charge',()=>isolated(async()=>{
  let payment,posts=0,utm=[],failPaid=true,postback;
  global.fetch=async(url,opts)=>{
-  if(url.startsWith('https://api.utmify.com.br')){const body=JSON.parse(opts.body);utm.push(body);return Response.json({}, {status:body.status==='paid'&&failPaid?503:200});}
+  if(url.startsWith('https://api.utmify.com.br')){const body=JSON.parse(opts.body);utm.push(body);return Response.json({OK:true}, {status:body.status==='paid'&&failPaid?503:200});}
   if(opts.method==='POST'){
    posts++;const body=JSON.parse(opts.body);postback=body.postback_url;payment={...sample(),external_code:body.external_code,customer:body.customer,items:body.items,metadata:body.extra.metadata,pix:{pix_qrcode_text:'TEST_ONLY_NOT_PAYABLE'}};
    return Response.json(payment);

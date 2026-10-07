@@ -1,5 +1,6 @@
 import {shopConfig,saveCart} from './common.js';
 import {appendPaymentDiagnostic} from './payment-diagnostics.js';
+import {purchaseConfirmed} from './meta.js';
 shopConfig();
 const ATTEMPT_KEY='tapstar_pix_attempt_v1';
 const id=new URLSearchParams(location.search).get('pedido')||localStorage.getItem('tapstar_last_order');
@@ -28,6 +29,7 @@ async function refresh(paymentCode){
   if(data.access_token)localStorage.setItem(`tapstar-order:${id}`,accessToken);
   let attempt;try{attempt=JSON.parse(localStorage.getItem(ATTEMPT_KEY)||'null');}catch{}
   if(data.status==='approved'){
+   purchaseConfirmed(data);
    if(attempt?.order_id===id){localStorage.removeItem(ATTEMPT_KEY);saveCart([]);}
    document.querySelector('#status-symbol').textContent='✓';button.hidden=true;
   }else if(['expired','canceled','refused','refunded'].includes(data.status)){

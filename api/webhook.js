@@ -5,6 +5,7 @@ import {readiness} from '../lib/config.js';
 import {rateLimit} from '../lib/session.js';
 import {MAX_TOTAL_CENTS} from '../public/js/catalog.js';
 import {syncUtmify,trackingFor} from '../lib/utmify.js';
+import {syncMeta} from '../lib/meta.js';
 
 const orderReference=/^TS-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const validAmounts=claims=>Number.isSafeInteger(claims.total_cents)&&claims.total_cents>0&&claims.total_cents<=MAX_TOTAL_CENTS&&Number.isSafeInteger(claims.shipping_cents)&&claims.shipping_cents>=0&&claims.shipping_cents<=claims.total_cents;
@@ -36,8 +37,10 @@ export default async function handler(req,res){
   const callbackTracking=trackingFor((body.metadata||body.extra?.metadata)?.tapstar_tracking);
   // Some provider GET responses omit metadata. A signed timestamp and hash
   // authenticate the callback's attribution without storing customer data.
-  const fallback=claims.createdAt?{createdAt:claims.createdAt,...(claims.tracking_hash===fingerprintFor(callbackTracking)?{tracking:callbackTracking}:{})}:undefined;
-  await syncUtmify(payment,{strict:true,fallback});
+  const callbackMeta=(body.metadata||body.extra?.metadata)?.tapstar_meta;
+  const fallback=claims.createdAt?{createdAt:claims.createdAt,...(claims.tracking_hash===fingerprintFor(callbackTracking)?{tracking:callbackTracking}:{}),...(callbackMeta&&claims.meta_hash===fingerprintFor(callbackMeta)?{meta:callbackMeta}:{})}:undefined;
+  const deliveries=await Promise.allSettled([syncUtmify(payment,{strict:true,fallback}),syncMeta(payment,{strict:true,fallback})]);
+  if(deliveries.some(r=>r.status==='rejected'))throw new HttpError(503,'Não foi possível sincronizar a notificação.');
   // No local order history or automatic fulfillment. The provider is the source
   // of truth, and the customer status page independently checks its receipt.
   // Repeated callbacks are safe: no new charge or delivery action is created.

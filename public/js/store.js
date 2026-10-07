@@ -1,5 +1,6 @@
 import {PRODUCTS,PRICE_TIERS,MIN_QUANTITY,MAX_QUANTITY,MAX_TOTAL_CENTS,unitPrice,tierFor,money,quote} from './catalog.js';
 import {getCart,saveCart,toast,shopConfig} from './common.js';
+import {metaEvent} from './meta.js';
 const draftOptions={enforceMinimum:false,enforceLimit:false};
 const grid=document.querySelector('#products');
 if(grid){
@@ -10,7 +11,9 @@ if(grid){
   button.addEventListener('click',()=>{
    if(!input.reportValidity()||Number(input.value)<=0)return;
    const items=getCart(),old=items.find(i=>i.id===p.id);if(old)old.quantity+=Number(input.value);else items.push({id:p.id,variant:p.variants[0],quantity:Number(input.value)});
-   try{saveCart(items);const q=quote(items,'standard',draftOptions);toast(!q.within_limit?`Adicionado. O total ultrapassa ${money(MAX_TOTAL_CENTS)}; ajuste no carrinho.`:`${p.shortName} adicionada.${q.quantity<MIN_QUANTITY?` Adicione mais ${MIN_QUANTITY-q.quantity} ${MIN_QUANTITY-q.quantity===1?'placa':'placas'} para o mínimo de ${MIN_QUANTITY}.`:''}`);}catch(e){toast(e.message);}
+   try{saveCart(items);const q=quote(items,'standard',draftOptions);toast(!q.within_limit?`Adicionado. O total ultrapassa ${money(MAX_TOTAL_CENTS)}; ajuste no carrinho.`:`${p.shortName} adicionada.${q.quantity<MIN_QUANTITY?` Adicione mais ${MIN_QUANTITY-q.quantity} ${MIN_QUANTITY-q.quantity===1?'placa':'placas'} para o mínimo de ${MIN_QUANTITY}.`:''}`);
+    metaEvent('AddToCart',{currency:'BRL',value:unitPrice(p,q.quantity)*Number(input.value)/100,content_ids:[p.id],content_type:'product',contents:[{id:p.id,quantity:Number(input.value)}]});
+   }catch(e){toast(e.message);}
   });
  });
 }
@@ -34,6 +37,6 @@ if(simulator){
  }
  inputs.forEach(input=>input.addEventListener('input',update));
  simulator.querySelectorAll('[data-step]').forEach(button=>button.addEventListener('click',()=>{const input=document.querySelector(`#sim-${button.dataset.for}`);input.value=Math.max(0,Math.min(MAX_QUANTITY,(Number(input.value)||0)+Number(button.dataset.step)));update();}));
- document.querySelector('#buy-order').addEventListener('click',()=>{try{const items=selected();quote(items);saveCart(items);location.href='/carrinho.html';}catch(e){toast(e.message);}});update();
+ document.querySelector('#buy-order').addEventListener('click',()=>{try{const items=selected(),q=quote(items);saveCart(items);metaEvent('AddToCart',{currency:'BRL',value:q.total_cents/100,content_type:'product',content_ids:items.map(i=>i.id),contents:items.map(i=>({id:i.id,quantity:i.quantity}))});location.href='/carrinho.html';}catch(e){toast(e.message);}});update();
 }
 shopConfig();

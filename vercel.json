@@ -30,7 +30,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://cdn.utmify.com.br https://www.googletagmanager.com 'sha256-CKb2GzxsmVKNu8aIyxZ2/Du5BssFUxBXJTLD0PWDI1A='; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://*.utmify.com.br https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.google.com https://stats.g.doubleclick.net; font-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+          "value": "default-src 'self'; script-src 'self' https://connect.facebook.net https://cdn.utmify.com.br https://www.googletagmanager.com 'sha256-CKb2GzxsmVKNu8aIyxZ2/Du5BssFUxBXJTLD0PWDI1A='; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://www.facebook.com https://connect.facebook.net https://*.utmify.com.br https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.google.com https://stats.g.doubleclick.net; font-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
         }
       ]
     },

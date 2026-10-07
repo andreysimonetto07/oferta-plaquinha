@@ -5,6 +5,7 @@ import {rateLimit,oncePerInstance} from '../lib/session.js';
 import {assertOrigin,begin,bodyOf,fail,signToken,readToken,fingerprintFor,ipKey} from '../lib/security.js';
 import {gateway,payloadFor,verifyPayment,publicPayment,paymentPath,paymentReference,paymentFailure,logPayment} from '../lib/mangofy.js';
 import {trackingFor,syncUtmify} from '../lib/utmify.js';
+import {metaContextFor,syncMeta} from '../lib/meta.js';
 export default async function handler(req,res){
  if(!begin(req,res,'POST'))return;
  try{
@@ -22,15 +23,16 @@ export default async function handler(req,res){
   const ticket=readToken(body.checkout_token,'prepare');
   if(ticket.id!==id||ticket.fingerprint!==fingerprint||ticket.total_cents!==q.total_cents||ticket.shipping_cents!==q.shipping_cents)throw new HttpError(409,'O pedido mudou. Confira o carrinho antes de pagar.');
   const result=await oncePerInstance(id,fingerprint,async()=>{
-   const order={id,customer,quote:q,method:'pix',status:'creating',tracking,createdAt:new Date().toISOString()};
-   order.postback=`${new URL(process.env.APP_URL).origin}/api/webhook?token=${encodeURIComponent(signToken('webhook',{...claims,createdAt:order.createdAt,tracking_hash:fingerprintFor(tracking)}))}`;
+   const order={id,customer,quote:q,method:'pix',status:'creating',tracking,createdAt:new Date().toISOString(),meta:metaContextFor(req,body.meta)};
+   order.postback=`${new URL(process.env.APP_URL).origin}/api/webhook?token=${encodeURIComponent(signToken('webhook',{...claims,createdAt:order.createdAt,tracking_hash:fingerprintFor(tracking),meta_hash:fingerprintFor(order.meta)}))}`;
    const ip=String(req.headers['x-vercel-forwarded-for']||req.headers['x-forwarded-for']||req.socket?.remoteAddress||'').split(',')[0].trim();
    let payment;logPayment('tapstar.pix.create.started',id);
    try{
     payment=await gateway(paymentPath('pix'),payloadFor(order,ip));verifyPayment(order,payment);
     if(payment.payment_status!=='approved'&&(typeof payment.pix?.pix_qrcode_text!=='string'||!payment.pix.pix_qrcode_text.trim()))throw {kind:'MISSING_PIX'};
     logPayment('tapstar.pix.create.completed',id,{has_payment_code:true,has_pix:!!payment.pix?.pix_qrcode_text});
-    await syncUtmify(payment,{fallback:{customer,items:payloadFor(order,ip).items,createdAt:order.createdAt,tracking}});
+    const fallback={customer,items:payloadFor(order,ip).items,createdAt:order.createdAt,tracking,meta:order.meta};
+    await Promise.all([syncUtmify(payment,{fallback}),syncMeta(payment,{fallback})]);
     return {code:201,data:{...publicPayment(order,payment),access_token:signToken('receipt',{...claims,payment_code:payment.payment_code})}};
    }catch(error){
     // A timeout can follow a created charge. Diagnostics do not authorize retry.

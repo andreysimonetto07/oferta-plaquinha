@@ -51,7 +51,7 @@ Se a Mangofy retornou um `payment_code` associado ao pedido, ele é preservado m
 
 ## Configuração
 
-Executar `npm ci` antes dos comandos abaixo. `jsdom` e `jsqr` verificam a interface e decodificam os QR de teste. `qrcode` 1.5.4 e `esbuild` geram o encoder local do navegador; as funções de pagamento não dependem dessas bibliotecas. A suíte contém 46 testes, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
+Executar `npm ci` antes dos comandos abaixo. `jsdom` e `jsqr` verificam a interface e decodificam os QR de teste. `qrcode` 1.5.4 e `esbuild` geram o encoder local do navegador; as funções de pagamento não dependem dessas bibliotecas. A suíte cobre o fluxo de compra e de análise, incluindo exibição do QR de teste, copia e cola, recarregamento, clique duplo e confirmação simulada. Nenhuma chamada desses testes alcança a Mangofy real.
 
 O checkout acompanha alterações de quantidade e entrega feitas em outra aba. Se uma alteração ainda não apareceu na tela no momento do clique, ele pede que o cliente confira o novo total antes de gerar o Pix. Durante a requisição, os campos ficam bloqueados para manter os dados revisados.
 
@@ -96,7 +96,7 @@ O endereço principal é `https://www.tapstarnfc.online`; `https://tapstarnfc.on
 
 O checkout exige que o cabeçalho `Origin` corresponda à origem de `APP_URL` ou a um dos endereços explicitamente autorizados do projeto: `https://tapstarnfc.online`, `https://www.tapstarnfc.online`, `https://www.tapstar.site` e `https://tap-star-two.vercel.app`. Não aceita subdomínios parecidos, outras lojas Vercel, portas alternativas ou origens inferidas de Host/forwarded headers. Se o navegador usa o domínio novo e a publicação ainda contém o endereço antigo, `/api/checkout` retorna `403 Origem inválida` antes de gerar qualquer cobrança. Corrigir a configuração e publicar; não remover a validação nem liberar qualquer domínio.
 
-O novo endereço fixo de webhook é `https://www.tapstar.site/api/webhook`. Manter o alias antigo da Vercel disponível para as cobranças que já receberam callbacks naquele endereço. As credenciais e `ORDER_SECRET` não precisam mudar na troca de domínio.
+O endereço fixo de webhook no domínio atual é `https://www.tapstarnfc.online/api/webhook`. Manter o alias antigo da Vercel disponível para as cobranças que já receberam callbacks naquele endereço. As credenciais e `ORDER_SECRET` não precisam mudar na troca de domínio.
 
 Verificação após a publicação: preparação no domínio principal retornou HTTP 200 com frete grátis (4.995 centavos) e Full (6.685 centavos, dos quais 1.690 de frete), para cinco placas comuns. Origem externa, pedido abaixo de cinco placas, total acima de R$ 900 e ticket adulterado permaneceram bloqueados. Os 46 testes locais passaram, incluindo QR, cópia e cola e confirmação simulada. Essa verificação não criou ou pagou uma cobrança real.
 
@@ -140,9 +140,9 @@ A CSP também permite `https://stats.g.doubleclick.net` em `connect-src`: a conf
 
 O novo domínio é `tapstarnfc.online`, com redirecionamento na Vercel para `www.tapstarnfc.online`. Ambos estão explicitamente autorizados no checkout. DNS e HTTPS do novo domínio foram confirmados e `APP_URL` em Production usa `https://www.tapstarnfc.online`. O endereço `tap-star-two.vercel.app` permanece disponível para cobranças e callbacks anteriores. Recibos, assinaturas e cobranças existentes não são alterados.
 
-O script fornecido foi decodificado sem executá-lo: carrega `https://cdn.utmify.com.br/scripts/pixel/pixel.js` e define o identificador público `6997c4440a47f2ab82f43662`. A implementação equivalente e legível está em `public/js/utmify.js`, carregada uma vez nas seis páginas e incluída nos assets versionados. A CSP permite o loader e conexões UTMify. O número Meta informado não é instalado novamente como outro pixel, evitando duplicação da configuração gerenciada pela UTMify.
+O script fornecido foi decodificado sem executá-lo: carrega `https://cdn.utmify.com.br/scripts/pixel/pixel.js` e define o identificador público `6997c4440a47f2ab82f43662`. A implementação equivalente e legível está em `public/js/utmify.js`, carregada uma vez nas seis páginas e incluída nos assets versionados. A CSP permite o loader e conexões UTMify. A integração atual também carrega o script de UTMs fornecido e o Pixel da Meta descritos abaixo.
 
-A tag não exige o token privado da API de pedidos. Nenhum token UTMify é colocado no HTML, JavaScript ou repositório. Não foram acrescentados POSTs à API de vendas, eventos de compra por Pix pendente nem transmissão de dados do checkout para essa API. A atribuição de vendas pagas pela API de pedidos é uma integração distinta.
+A tag não exige o token privado da API de pedidos. Nenhum token UTMify é colocado no HTML, JavaScript ou repositório. A integração da API de vendas está descrita abaixo. Pix pendente não gera evento de compra na Meta.
 
 
 ### UTMify — API de vendas
@@ -158,3 +158,29 @@ A falha de análise nunca oculta um Pix gerado. No webhook, falha de envio retor
 O contrato de pagamento fornecido não expõe taxas. A comissão é enviada como receita bruta, com gatewayFeeInCents 0; isso não significa que o gateway não cobra taxa. Configure as taxas na ferramenta de relatórios conforme o contrato comercial. Nenhuma venda paga de teste deve entrar nos relatórios reais; testes externos devem usar isTest true.
 
 Validação em 06/10/2026: API UTMify aceitou isTest true a partir da Vercel com HTTP 200. Nenhum Pix real ou venda paga foi criado. Os 54 testes passaram, incluindo atribuição entre páginas, validação de callbacks, status, falhas e reenvio. A rota temporária autenticada de diagnóstico foi removida depois dessa verificação.
+
+
+### Meta e propagação de UTMs (07/10/2026)
+
+O ID Meta é `1110503111916557`, conforme o snippet completo fornecido e o ID anterior. O número avulso `110503111916557` difere desse snippet. `public/js/meta.js` implementa o bootstrap legível e envia PageView, AddToCart, InitiateCheckout e AddPaymentInfo nas respectivas ações. Purchase depende de status aprovado retornado pelo servidor. O bootstrap impede inicialização e PageView repetidos do mesmo pixel na página; a marca local impede repetir Purchase ao recarregar. O fallback noscript está nas seis páginas.
+
+`utmify.js` carrega uma vez tanto `scripts/pixel/pixel.js` (ID `6997c4440a47f2ab82f43662`) quanto `scripts/utms/latest.js`, com os atributos exatos das tags fornecidas. Não se executa o código ofuscado; usa-se sua configuração equivalente. A captura local preserva os parâmetros entre páginas mesmo se o CDN estiver indisponível. A CSP permite os destinos Meta e UTMify necessários.
+
+| Variável em Production | Conteúdo |
+| --- | --- |
+| `UTMIFY_API_TOKEN` | Token privado de API de pedidos da UTMify; segredo |
+| `META_PIXEL_ID` | `1110503111916557`; configuração pública |
+| `META_ACCESS_TOKEN` | Token privado de API de Conversões autorizado para esse pixel; segredo |
+| `META_TEST_EVENT_CODE` | Opcional: código real exibido em Eventos de teste da Meta. Deixar ausente em produção |
+
+`lib/meta.js` envia Purchase à API de Conversões Graph v26, após confirmação autenticada do pagamento. E-mail e telefone são normalizados e enviados como SHA-256; fbp/fbc, IP válido e user-agent seguem o contrato da API. Credenciais ficam exclusivamente nas variáveis privadas da Vercel. O navegador e o servidor compartilham `tapstar:<referência>:purchase` como event_id/eventID para deduplicação. A consulta do provedor recupera o contexto da cobrança. O callback assinado também permite recuperar contexto omitido no GET, conferindo o hash assinado dos metadados.
+
+UTMify exige reconhecimento positivo da resposta, além de HTTP bem-sucedido. Meta exige `events_received: 1`. Falhas geram logs com categoria e códigos seguros; não incluem tokens, dados pessoais nem corpos de respostas. O checkout conserva o Pix mesmo se o envio de análise falhar; o webhook retorna 503 e as consultas de status tentam novamente. Sem fila ou banco próprios, as tentativas continuam limitadas aos callbacks do provedor e às consultas. Configure apenas uma fonte de Purchase por integração no painel UTMify/Meta se a UTMify também estiver habilitada para enviar a mesma conversão por conta própria; o ID compartilhado aqui cobre navegador e servidor deste site.
+
+Parâmetros para o campo de URL do anúncio no Gerenciador de Anúncios (sem `?` inicial):
+
+```text
+utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}
+```
+
+Isso pertence à configuração do anúncio; a loja captura os valores que a Meta substitui no clique. A inserção no site não edita campanhas existentes.
