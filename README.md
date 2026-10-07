@@ -184,3 +184,5 @@ utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.
 ```
 
 Isso pertence à configuração do anúncio; a loja captura os valores que a Meta substitui no clique. A inserção no site não edita campanhas existentes.
+
+Verificação externa em 07/10/2026: pedidos UTMify com `isTest: true`, nos estados waiting_payment e paid, receberam HTTP 200 e reconhecimento positivo da API. A API de Conversões da Meta reconheceu uma PageView da visita de verificação com `events_received: 1`, usando o ID `1110503111916557` e o token configurados em Production. O navegador carregou ambos os scripts UTMify, `fbevents.js` e a configuração desse pixel sem erro de CSP. Todos os 58 testes locais passaram. Nenhuma cobrança foi criada ou paga e nenhuma Purchase real foi fabricada. A rota temporária, autenticada e limitada a esses testes, foi removida após a verificação; a aceitação de uma compra real exige um Pix efetivamente pago e confirmado pelo provedor.
