@@ -162,14 +162,14 @@ Validação em 06/10/2026: API UTMify aceitou isTest true a partir da Vercel com
 
 ### Meta e propagação de UTMs (07/10/2026)
 
-O ID Meta atual é `1658229462617118`, conforme o novo snippet fornecido para a loja original em 08/10/2026. `public/js/meta.js` implementa o bootstrap legível e envia PageView, AddToCart, InitiateCheckout e AddPaymentInfo nas respectivas ações. Purchase depende de status aprovado retornado pelo servidor. O bootstrap impede inicialização e PageView repetidos do mesmo pixel na página; a marca local impede repetir Purchase ao recarregar. O fallback noscript está nas seis páginas.
+O ID Meta atual é `1571896364200201`, conforme o novo snippet fornecido para a loja original em 09/10/2026. `public/js/meta.js` implementa o bootstrap legível e envia PageView, AddToCart, InitiateCheckout e AddPaymentInfo nas respectivas ações. Purchase depende de status aprovado retornado pelo servidor. O bootstrap impede inicialização e PageView repetidos do mesmo pixel na página; a marca local impede repetir Purchase ao recarregar. O fallback noscript está nas seis páginas.
 
 `utmify.js` carrega uma vez tanto `scripts/pixel/pixel.js` (ID `6997c4440a47f2ab82f43662`) quanto `scripts/utms/latest.js`, com os atributos exatos das tags fornecidas. Não se executa o código ofuscado; usa-se sua configuração equivalente. A captura local preserva os parâmetros entre páginas mesmo se o CDN estiver indisponível. A CSP permite os destinos Meta e UTMify necessários.
 
 | Variável em Production | Conteúdo |
 | --- | --- |
 | `UTMIFY_API_TOKEN` | Token privado de API de pedidos da UTMify; segredo |
-| `META_PIXEL_ID` | `1658229462617118`; configuração pública |
+| `META_PIXEL_ID` | `1571896364200201`; configuração pública |
 | `META_ACCESS_TOKEN` | Token privado de API de Conversões autorizado para esse pixel; segredo |
 | `META_TEST_EVENT_CODE` | Opcional: código real exibido em Eventos de teste da Meta. Deixar ausente em produção |
 
@@ -189,8 +189,8 @@ Verificação externa em 07/10/2026: pedidos UTMify com `isTest: true`, nos esta
 
 ### Troca do Pixel Meta na loja original (08/10/2026)
 
-O Pixel `1658229462617118` é compartilhado pelos eventos do navegador e pelos seis fallbacks noscript da loja original. O bootstrap impede que um loader externo reinicialize um Pixel diferente. Os scripts de UTMs e o identificador UTMify continuam como antes. Purchase só é emitido após o status aprovado obtido pela API do site. O projeto e o repositório de Pedro não participam desta alteração.
+O Pixel `1571896364200201` é compartilhado pelos eventos do navegador e pelos seis fallbacks noscript da loja original. O bootstrap impede que um loader externo reinicialize um Pixel diferente. Os scripts de UTMs e o identificador UTMify continuam como antes. Purchase só é emitido após o status aprovado obtido pela API do site. O projeto e o repositório de Pedro não participam desta alteração.
 
-Na Vercel, `META_PIXEL_ID` em Production deve ser `1658229462617118` e `META_ACCESS_TOKEN` deve ser um token autorizado para esse mesmo Pixel, seguido de nova publicação. Não reutilizar automaticamente um token de outro Pixel. Enquanto a configuração do servidor apontar para o Pixel anterior, a API de Conversões é ignorada, preservando o processamento do webhook e os eventos do novo Pixel no navegador. O snippet fornecido não contém um token novo de API de Conversões.
+Na Vercel, `META_PIXEL_ID` em Production deve ser `1571896364200201` e `META_ACCESS_TOKEN` deve ser um token autorizado para esse mesmo Pixel, seguido de nova publicação. Não reutilizar automaticamente um token de outro Pixel. Enquanto a configuração do servidor apontar para o Pixel anterior, a API de Conversões é ignorada, preservando o processamento do webhook e os eventos do novo Pixel no navegador. O token privado de API de Conversões fornecido em 09/10/2026 deve ser configurado somente na Vercel, nunca no repositório ou no JavaScript público.
 
 O domínio novo ainda não foi informado nesta solicitação; esta alteração não muda APP_URL, origens permitidas, DNS ou callbacks de pagamento.

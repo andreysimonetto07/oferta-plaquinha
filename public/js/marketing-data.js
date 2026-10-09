@@ -1,2 +1,2 @@
-export const META_PIXEL_ID='1658229462617118';
+export const META_PIXEL_ID='1571896364200201';
 export const purchaseEventId=id=>`tapstar:${id}:purchase`;
