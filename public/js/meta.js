@@ -5,9 +5,10 @@ export function initMeta(){
  if(!window.fbq){
   let initialized=false,pageView=false;
   const n=window.fbq=function(...args){
-   // The UTMify pixel may also initialize this same Meta pixel. Keep one init
-   // and one PageView per page, while retaining the official fbq queue API.
-   if(args[0]==='init'&&String(args[1])===META_PIXEL_ID){if(initialized)return;initialized=true;}
+   // Use the selected Meta pixel even if an external loader retains an older
+   // configuration. Keep one init and PageView, with the official queue API.
+   if(args[0]==='init'){if(String(args[1])!==META_PIXEL_ID||initialized)return;initialized=true;}
+   if(['trackSingle','trackSingleCustom'].includes(args[0])&&String(args[1])!==META_PIXEL_ID)return;
    if((args[0]==='track'&&args[1]==='PageView')||(args[0]==='trackSingle'&&String(args[1])===META_PIXEL_ID&&args[2]==='PageView')){if(pageView)return;pageView=true;}
    n.callMethod?n.callMethod.apply(n,args):n.queue.push(args);
   };

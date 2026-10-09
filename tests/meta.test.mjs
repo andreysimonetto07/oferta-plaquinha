@@ -22,9 +22,12 @@ test('browser installs one Meta pixel, preserves both UTMify tags and sends Purc
  const source=(await readFile(new URL('../public/js/meta.js',import.meta.url),'utf8')).replace(/^import .*;\n/,'').replaceAll('export ','');
  dom.window.eval(`const META_PIXEL_ID='${META_PIXEL_ID}';const purchaseEventId=id=>'tapstar:'+id+':purchase';`+source+';window.purchaseConfirmed=purchaseConfirmed;window.metaContext=metaContext;window.initMeta=initMeta;');
  dom.window.initMeta();dom.window.fbq('init',META_PIXEL_ID);dom.window.fbq('track','PageView');
+ // A stale external loader must not activate a different Meta pixel.
+ dom.window.fbq('init','9999999999999999');dom.window.fbq('trackSingle','9999999999999999','Purchase',{value:49.95,currency:'BRL'});
  assert.equal(dom.window.document.querySelectorAll('script[src="https://connect.facebook.net/en_US/fbevents.js"]').length,1);
  assert.equal(dom.window.fbq.queue.filter(a=>a[0]==='init').length,1);
  assert.equal(dom.window.fbq.queue.filter(a=>a.includes('PageView')).length,1);
+ assert.equal(dom.window.fbq.queue.some(a=>a.includes('9999999999999999')),false);
  assert.match(dom.window.metaContext().fbc,/^fb\.1\.\d+\.CLICK_TEST$/);
  const order={order_id:'TS-browser-test',total_cents:4995};
  dom.window.purchaseConfirmed({...order,status:'pending'});assert.equal(dom.window.fbq.queue.filter(a=>a.includes('Purchase')).length,0);
@@ -46,6 +49,18 @@ test('server keeps validated click cookies and hashes normalized personal identi
  assert.equal(JSON.stringify(event).includes(customer.email),false);assert.equal(JSON.stringify(event).includes(customer.document),false);
  assert.equal(purchasePayload({...p,payment_status:'pending'}),null);assert.equal(purchasePayload({...p,metadata:{}}),null);
  assert.throws(()=>purchasePayload({...p,payment_amount:0}));
+}));
+test('a previous CAPI pixel configuration cannot use its token for the new pixel or interrupt a verified webhook',()=>isolated(async()=>{
+ const p=sample();let metaCalls=0,utmCalls=0;
+ process.env.META_PIXEL_ID='9999999999999999';
+ global.fetch=async(url,opts)=>{
+  if(url.startsWith('https://graph.facebook.com')){metaCalls++;throw Error('An unconfigured pixel must not receive a server event');}
+  if(url.startsWith('https://api.utmify.com.br')){utmCalls++;assert.equal(JSON.parse(opts.body).status,'paid');return Response.json({OK:true});}
+  assert.equal(opts.method,'GET');return Response.json(p);
+ };
+ assert.deepEqual(await syncMeta(p,{strict:true}),{skipped:true,reason:'PIXEL_NOT_CONFIGURED'});
+ const out=response();await webhook({method:'POST',headers:{},body:p},out);
+ assert.equal(out.code,200);assert.equal(out.data.received,true);assert.equal(metaCalls,0);assert.equal(utmCalls,1);
 }));
 test('CAPI requires events_received, retries rejections and keeps the token private with stable deduplication',()=>isolated(async logs=>{
  const p=sample();let calls=0;
